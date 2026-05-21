@@ -1,0 +1,250 @@
+:root {
+    --bottom-bar-height: clamp(28px, 4dvh, 44px);
+    --leaflet-zoom-control-size: clamp(22px, 3.2vmin, 30px);
+    --leaflet-zoom-font-size: clamp(18px, 2.3vmin, 22px);
+}
+
+.app-sidebar {
+    color: #ffffff;
+    container-type: inline-size;
+    container-name: sidebar;
+}
+
+.app-sidebar .sidebar-card {
+    color: inherit;
+}
+
+.app-sidebar .sidebar-title {
+    color: inherit;
+    font-weight: 700;
+}
+
+.app-sidebar .sidebar-button {
+    font: inherit;
+}
+
+.app-sidebar .sidebar-input {
+    font: inherit;
+    color: inherit;
+}
+
+.app-sidebar .sidebar-logo {
+    display: block;
+    max-width: 100%;
+}
+
+html,
+body,
+#react-entry-point,
+#_dash-app-content {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.seed-panel-shell,
+.seed-panel-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.58) rgba(255, 255, 255, 0.08);
+}
+
+.seed-panel-shell::-webkit-scrollbar,
+.seed-panel-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.seed-panel-shell::-webkit-scrollbar-track,
+.seed-panel-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+}
+
+.seed-panel-shell::-webkit-scrollbar-thumb,
+.seed-panel-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.62), rgba(100, 116, 139, 0.52));
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.seed-panel-shell::-webkit-scrollbar-thumb:hover,
+.seed-panel-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(191, 219, 254, 0.72), rgba(125, 211, 252, 0.62));
+}
+
+.leaflet-bottom.leaflet-right {
+    bottom: calc(var(--bottom-bar-height) + 10px);
+}
+
+.leaflet-control-zoom a {
+    width: var(--leaflet-zoom-control-size);
+    height: var(--leaflet-zoom-control-size);
+    line-height: var(--leaflet-zoom-control-size);
+    font-size: var(--leaflet-zoom-font-size);
+}
+
+.legend-info-shell {
+    position: absolute;
+    top: clamp(40px, 5.4vmin, 64px);
+    right: clamp(10px, 1.8vmin, 22px);
+    z-index: 1080;
+    padding-bottom: 8px;
+    pointer-events: auto;
+}
+
+.legend-info-button {
+    width: clamp(32px, 4vmin, 42px);
+    height: clamp(32px, 4vmin, 42px);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    background: rgba(0, 31, 63, 0.82);
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.24);
+    cursor: help;
+    font: 800 clamp(16px, 2vmin, 20px) / 1 "Segoe UI", sans-serif;
+    transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.legend-info-button:hover,
+.legend-info-button:focus-visible {
+    border-color: rgba(255, 255, 255, 0.48);
+    background: rgba(0, 31, 63, 0.92);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.legend-info-popover {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: min(342px, calc(100vw - 24px));
+    max-height: min(70vh, 430px);
+    overflow: auto;
+    padding: clamp(12px, 1.8vmin, 16px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(0, 31, 63, 0.82);
+    color: #ffffff;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.32);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+    visibility: hidden;
+    backdrop-filter: blur(14px);
+}
+
+.legend-info-popover::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    right: 0;
+    width: 100%;
+    height: 12px;
+}
+
+.legend-info-shell:hover .legend-info-popover,
+.legend-info-shell:focus-within .legend-info-popover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    visibility: visible;
+}
+
+.legend-info-heading {
+    margin-bottom: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(12px, 1.45vmin, 14px);
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.legend-info-content {
+    display: grid;
+    gap: 12px;
+}
+
+.legend-info-section {
+    display: grid;
+    gap: 7px;
+}
+
+.legend-info-section + .legend-info-section {
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.legend-info-title {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.legend-info-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+    gap: 7px 12px;
+}
+
+.legend-info-item {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.94);
+    font-size: clamp(11px, 1.35vmin, 13px);
+    line-height: 1.25;
+}
+
+.legend-info-swatch {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    flex: 0 0 auto;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.legend-info-line {
+    width: 26px;
+    height: 5px;
+    display: inline-block;
+    flex: 0 0 auto;
+    border-radius: 999px;
+}
+
+.legend-info-label {
+    min-width: 0;
+}
+
+@media (max-width: 640px) {
+    .legend-info-shell {
+        top: 12px;
+        right: 12px;
+    }
+
+    .legend-info-popover {
+        width: calc(100vw - 24px);
+    }
+
+    .legend-info-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (hover: none) {
+    .legend-info-button {
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+}
