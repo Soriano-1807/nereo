@@ -212,6 +212,14 @@ class CallbacksManager:
                     window.__nereoLoadingObserver.disconnect();
                     window.__nereoLoadingObserver = null;
                 }
+                if (window.__nereoLoadingResizeObserver) {
+                    window.__nereoLoadingResizeObserver.disconnect();
+                    window.__nereoLoadingResizeObserver = null;
+                }
+                if (window.__nereoLoadingCleanupListeners) {
+                    window.__nereoLoadingCleanupListeners();
+                    window.__nereoLoadingCleanupListeners = null;
+                }
                 if (window.__nereoLoadingQuietTimer) {
                     clearTimeout(window.__nereoLoadingQuietTimer);
                     window.__nereoLoadingQuietTimer = null;
@@ -231,6 +239,14 @@ class CallbacksManager:
                         if (window.__nereoLoadingObserver) {
                             window.__nereoLoadingObserver.disconnect();
                             window.__nereoLoadingObserver = null;
+                        }
+                        if (window.__nereoLoadingResizeObserver) {
+                            window.__nereoLoadingResizeObserver.disconnect();
+                            window.__nereoLoadingResizeObserver = null;
+                        }
+                        if (window.__nereoLoadingCleanupListeners) {
+                            window.__nereoLoadingCleanupListeners();
+                            window.__nereoLoadingCleanupListeners = null;
                         }
                         if (window.__nereoLoadingQuietTimer) {
                             clearTimeout(window.__nereoLoadingQuietTimer);
@@ -252,7 +268,7 @@ class CallbacksManager:
                             requestAnimationFrame(() => {
                                 requestAnimationFrame(finalize);
                             });
-                        }, 400);
+                        }, 600);
                     };
 
                     const mapRoot = document.getElementById("map");
@@ -271,9 +287,31 @@ class CallbacksManager:
                         attributes: true,
                     });
 
-                    mapRoot.addEventListener("layeradd", scheduleFinish, { once: true });
-                    mapRoot.addEventListener("overlayadd", scheduleFinish, { once: true });
-                    mapRoot.addEventListener("moveend", scheduleFinish, { once: true });
+                    if (window.ResizeObserver) {
+                        window.__nereoLoadingResizeObserver = new ResizeObserver(() => {
+                            scheduleFinish();
+                        });
+                        window.__nereoLoadingResizeObserver.observe(mapRoot);
+                    }
+
+                    const eventTargets = [
+                        mapRoot,
+                        ...Array.from(mapRoot.querySelectorAll(".leaflet-pane, .leaflet-overlay-pane, .leaflet-marker-pane, .leaflet-tile-pane, svg")),
+                    ];
+                    const eventTypes = ["layeradd", "overlayadd", "tileload", "tileloadstart", "tileloadend", "moveend", "transitionend", "animationend"];
+                    const listenerRecords = [];
+                    eventTargets.forEach((target) => {
+                        eventTypes.forEach((eventName) => {
+                            const handler = () => scheduleFinish();
+                            target.addEventListener(eventName, handler, true);
+                            listenerRecords.push([target, eventName, handler]);
+                        });
+                    });
+                    window.__nereoLoadingCleanupListeners = () => {
+                        listenerRecords.forEach(([target, eventName, handler]) => {
+                            target.removeEventListener(eventName, handler, true);
+                        });
+                    };
 
                     scheduleFinish();
                     window.__nereoLoadingMaxTimer = setTimeout(finalize, 6000);
