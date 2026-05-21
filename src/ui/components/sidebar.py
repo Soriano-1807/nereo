@@ -411,10 +411,10 @@ def build_environment_banner(temperature_range, salinity_range):
             html.Span(
                 " | ".join(
                     [
-                        f"Temperatura del área entre Marzo 2025 y Marzo 2026: {temperature_text}",
+                        f"Temperatura en el área últimos 4 años: {temperature_text}",
                         "Umbral letal del pez león: ≤ 10 °C",
-                        f"Salinidad del área entre Marzo 2025 y Marzo 2026: {salinity_text}",
-                        "Rango apto de salinidad para colonización: 34.11 PSU - 38.11 PSU",
+                        f"Salinidad del área últimos 4 años: {salinity_text}",
+                        "Rango apto para colonización: 34.11 PSU - 38.11 PSU",
                     ]
                 )
             ),
