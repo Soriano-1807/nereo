@@ -142,59 +142,27 @@ class CallbacksManager:
 
         app.clientside_callback(
             """
-            function(stepClicks, currentsClicks, transportClicks, seedApplyClicks, currentsVisible, transportVisible) {
+            function(stepClicks, currentsClicks, transportClicks, seedApplyClicks) {
                 const triggered = dash_clientside.callback_context.triggered_id;
                 if (!triggered) {
-                    return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+                    return window.dash_clientside.no_update;
                 }
 
-                const buildPendingAction = function(action, targets) {
-                    const requestId = `${action}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-                    window.__nereoLoadingRequestId = requestId;
-                    return [true, { action, waitFor: targets, seen: {}, requestId }];
-                };
-
-                if (triggered === "step-btn") {
-                    const waitFor = ["grid"];
-                    if (currentsVisible) {
-                        waitFor.push("currents");
-                    }
-                    if (transportVisible) {
-                        waitFor.push("transport");
-                    }
-                    return buildPendingAction("step", waitFor);
+                const loader = document.getElementById("custom-global-loader");
+                if (loader) {
+                    loader.style.display = "flex";
                 }
 
-                if (triggered === "seed-apply-btn") {
-                    const waitFor = ["grid"];
-                    if (currentsVisible) {
-                        waitFor.push("currents");
-                    }
-                    if (transportVisible) {
-                        waitFor.push("transport");
-                    }
-                    return buildPendingAction("seed-apply", waitFor);
-                }
-
-                if (triggered === "toggle-currents-btn") {
-                    return buildPendingAction("toggle-currents", ["currents"]);
-                }
-
-                if (triggered === "toggle-transport-btn") {
-                    return buildPendingAction("toggle-transport", ["transport"]);
-                }
-
-                return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+                const requestId = `${triggered}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                window.__nereoLoadingRequestId = requestId;
+                return { action: triggered, requestId };
             }
             """,
-            Output("loading-visible-store", "data"),
             Output("loading-pending-action-store", "data"),
             Input("step-btn", "n_clicks"),
             Input("toggle-currents-btn", "n_clicks"),
             Input("toggle-transport-btn", "n_clicks"),
             Input("seed-apply-btn", "n_clicks"),
-            State("currents-visible-store", "data"),
-            State("transport-visible-store", "data"),
             prevent_initial_call=True,
         )
 
@@ -202,84 +170,72 @@ class CallbacksManager:
             """
             function(pendingAction) {
                 if (!pendingAction || !pendingAction.requestId) {
-                    return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+                    return window.dash_clientside.no_update;
                 }
 
                 const requestId = pendingAction.requestId;
-                window.__nereoLoadingRequestId = requestId;
+                const loader = document.getElementById("custom-global-loader");
+                const mapRoot = document.getElementById("map");
 
-                if (window.__nereoLoadingObserver) {
-                    window.__nereoLoadingObserver.disconnect();
-                    window.__nereoLoadingObserver = null;
-                }
-                if (window.__nereoLoadingResizeObserver) {
-                    window.__nereoLoadingResizeObserver.disconnect();
-                    window.__nereoLoadingResizeObserver = null;
-                }
-                if (window.__nereoLoadingCleanupListeners) {
-                    window.__nereoLoadingCleanupListeners();
-                    window.__nereoLoadingCleanupListeners = null;
-                }
-                if (window.__nereoLoadingQuietTimer) {
-                    clearTimeout(window.__nereoLoadingQuietTimer);
-                    window.__nereoLoadingQuietTimer = null;
-                }
-                if (window.__nereoLoadingMaxTimer) {
-                    clearTimeout(window.__nereoLoadingMaxTimer);
-                    window.__nereoLoadingMaxTimer = null;
-                }
+                const cleanup = () => {
+                    if (window.__nereoLoadingObserver) {
+                        window.__nereoLoadingObserver.disconnect();
+                        window.__nereoLoadingObserver = null;
+                    }
+                    if (window.__nereoLoadingResizeObserver) {
+                        window.__nereoLoadingResizeObserver.disconnect();
+                        window.__nereoLoadingResizeObserver = null;
+                    }
+                    if (window.__nereoLoadingCleanupListeners) {
+                        window.__nereoLoadingCleanupListeners();
+                        window.__nereoLoadingCleanupListeners = null;
+                    }
+                    if (window.renderLockTimer) {
+                        clearTimeout(window.renderLockTimer);
+                        window.renderLockTimer = null;
+                    }
+                    if (window.__nereoLoadingMaxTimer) {
+                        clearTimeout(window.__nereoLoadingMaxTimer);
+                        window.__nereoLoadingMaxTimer = null;
+                    }
+                };
+
+                cleanup();
 
                 return new Promise((resolve) => {
                     const finalize = () => {
                         if (window.__nereoLoadingRequestId !== requestId) {
-                            resolve([window.dash_clientside.no_update, window.dash_clientside.no_update]);
+                            resolve(window.dash_clientside.no_update);
                             return;
                         }
 
-                        if (window.__nereoLoadingObserver) {
-                            window.__nereoLoadingObserver.disconnect();
-                            window.__nereoLoadingObserver = null;
-                        }
-                        if (window.__nereoLoadingResizeObserver) {
-                            window.__nereoLoadingResizeObserver.disconnect();
-                            window.__nereoLoadingResizeObserver = null;
-                        }
-                        if (window.__nereoLoadingCleanupListeners) {
-                            window.__nereoLoadingCleanupListeners();
-                            window.__nereoLoadingCleanupListeners = null;
-                        }
-                        if (window.__nereoLoadingQuietTimer) {
-                            clearTimeout(window.__nereoLoadingQuietTimer);
-                            window.__nereoLoadingQuietTimer = null;
-                        }
-                        if (window.__nereoLoadingMaxTimer) {
-                            clearTimeout(window.__nereoLoadingMaxTimer);
-                            window.__nereoLoadingMaxTimer = null;
+                        cleanup();
+                        if (loader) {
+                            loader.style.display = "none";
                         }
                         window.__nereoLoadingRequestId = null;
-                        resolve([false, null]);
+                        resolve(null);
                     };
 
-                    const scheduleFinish = () => {
-                        if (window.__nereoLoadingQuietTimer) {
-                            clearTimeout(window.__nereoLoadingQuietTimer);
+                    const scheduleFinalize = () => {
+                        if (window.renderLockTimer) {
+                            clearTimeout(window.renderLockTimer);
                         }
-                        window.__nereoLoadingQuietTimer = setTimeout(() => {
+                        window.renderLockTimer = setTimeout(() => {
                             requestAnimationFrame(() => {
                                 requestAnimationFrame(finalize);
                             });
-                        }, 600);
+                        }, 800);
                     };
 
-                    const mapRoot = document.getElementById("map");
                     if (!mapRoot) {
-                        scheduleFinish();
-                        window.__nereoLoadingMaxTimer = setTimeout(finalize, 6000);
+                        scheduleFinalize();
+                        window.__nereoLoadingMaxTimer = setTimeout(finalize, 8000);
                         return;
                     }
 
                     window.__nereoLoadingObserver = new MutationObserver(() => {
-                        scheduleFinish();
+                        scheduleFinalize();
                     });
                     window.__nereoLoadingObserver.observe(mapRoot, {
                         childList: true,
@@ -289,20 +245,22 @@ class CallbacksManager:
 
                     if (window.ResizeObserver) {
                         window.__nereoLoadingResizeObserver = new ResizeObserver(() => {
-                            scheduleFinish();
+                            scheduleFinalize();
                         });
                         window.__nereoLoadingResizeObserver.observe(mapRoot);
                     }
 
                     const eventTargets = [
                         mapRoot,
-                        ...Array.from(mapRoot.querySelectorAll(".leaflet-pane, .leaflet-overlay-pane, .leaflet-marker-pane, .leaflet-tile-pane, svg")),
+                        ...Array.from(
+                            mapRoot.querySelectorAll(".leaflet-pane, .leaflet-overlay-pane, .leaflet-marker-pane, .leaflet-tile-pane, svg, canvas")
+                        ),
                     ];
-                    const eventTypes = ["layeradd", "overlayadd", "tileload", "tileloadstart", "tileloadend", "moveend", "transitionend", "animationend"];
+                    const eventTypes = ["layeradd", "overlayadd", "viewreset", "tileloadend", "moveend", "transitionend", "animationend"];
                     const listenerRecords = [];
                     eventTargets.forEach((target) => {
                         eventTypes.forEach((eventName) => {
-                            const handler = () => scheduleFinish();
+                            const handler = () => scheduleFinalize();
                             target.addEventListener(eventName, handler, true);
                             listenerRecords.push([target, eventName, handler]);
                         });
@@ -313,25 +271,14 @@ class CallbacksManager:
                         });
                     };
 
-                    scheduleFinish();
-                    window.__nereoLoadingMaxTimer = setTimeout(finalize, 6000);
+                    scheduleFinalize();
+                    window.__nereoLoadingMaxTimer = setTimeout(finalize, 8000);
                 });
             }
             """,
-            Output("loading-visible-store", "data", allow_duplicate=True),
             Output("loading-pending-action-store", "data", allow_duplicate=True),
             Input("loading-pending-action-store", "data"),
             prevent_initial_call=True,
-        )
-
-        app.clientside_callback(
-            """
-            function(isVisible) {
-                return isVisible ? "app-loading-indicator" : "app-loading-indicator is-hidden";
-            }
-            """,
-            Output("app-loading-indicator", "className"),
-            Input("loading-visible-store", "data"),
         )
 
         @app.callback(
