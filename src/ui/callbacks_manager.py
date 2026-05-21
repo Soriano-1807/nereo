@@ -11,6 +11,7 @@ from src.ui.components.map_view import (
     build_seed_draft_layer,
     build_selection_layer,
     build_transport_path_layers,
+    current_marker_batch_class,
 )
 from src.ui.components.config_panel import (
     build_seed_cell_status,
@@ -142,11 +143,24 @@ class CallbacksManager:
 
         app.clientside_callback(
             """
-            function(stepClicks, currentsClicks, transportClicks, seedApplyClicks) {
+            function(stepClicks, currentsClicks, transportClicks, seedApplyClicks, currentsVisible, simVersion) {
+                if (typeof window.targetMarkerCount !== "number") {
+                    window.targetMarkerCount = 0;
+                }
+                if (typeof window.currentMarkerCount !== "number") {
+                    window.currentMarkerCount = 0;
+                }
+
                 const triggered = dash_clientside.callback_context.triggered_id;
                 if (!triggered) {
                     return window.dash_clientside.no_update;
                 }
+
+                window.targetMarkerCount = 0;
+                window.currentMarkerCount = 0;
+                window.currentMarkerBatchClass = null;
+                window.__nereoCurrentMarkerTargetKnown = false;
+                window.__nereoCountedCurrentMarkers = new WeakSet();
 
                 const loader = document.getElementById("custom-global-loader");
                 if (loader) {
@@ -154,8 +168,18 @@ class CallbacksManager:
                 }
 
                 const requestId = `${triggered}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                const waitsForCurrentMarkers = (
+                    (triggered === "toggle-currents-btn" && !Boolean(currentsVisible)) ||
+                    ((triggered === "step-btn" || triggered === "seed-apply-btn") && Boolean(currentsVisible))
+                );
+                const currentVersion = Number(simVersion) || 0;
+                const expectedVersion = triggered === "toggle-currents-btn" ? currentVersion : currentVersion + 1;
+                window.__nereoWaitsForCurrentMarkers = waitsForCurrentMarkers;
+                window.__nereoExpectedCurrentBatchClass = waitsForCurrentMarkers
+                    ? `current-marker-batch-${expectedVersion}`
+                    : null;
                 window.__nereoLoadingRequestId = requestId;
-                return { action: triggered, requestId };
+                return { action: triggered, requestId, waitsForCurrentMarkers };
             }
             """,
             Output("loading-pending-action-store", "data"),
@@ -163,6 +187,44 @@ class CallbacksManager:
             Input("toggle-currents-btn", "n_clicks"),
             Input("toggle-transport-btn", "n_clicks"),
             Input("seed-apply-btn", "n_clicks"),
+            State("currents-visible-store", "data"),
+            State("sim-version-store", "data"),
+            prevent_initial_call=True,
+        )
+
+        app.clientside_callback(
+            """
+            function(markerTarget) {
+                const batchClass = markerTarget && markerTarget.batchClass ? markerTarget.batchClass : null;
+                if (
+                    window.__nereoWaitsForCurrentMarkers &&
+                    window.__nereoExpectedCurrentBatchClass &&
+                    batchClass !== window.__nereoExpectedCurrentBatchClass
+                ) {
+                    return window.dash_clientside.no_update;
+                }
+
+                window.targetMarkerCount = Number(markerTarget && markerTarget.target) || 0;
+                window.currentMarkerCount = 0;
+                window.currentMarkerBatchClass = batchClass;
+                window.__nereoCurrentMarkerTargetKnown = true;
+                window.__nereoCountedCurrentMarkers = new WeakSet();
+
+                if (window.targetMarkerCount > 0) {
+                    const loader = document.getElementById("custom-global-loader");
+                    if (loader) {
+                        loader.style.display = "flex";
+                    }
+                }
+
+                window.dispatchEvent(new CustomEvent("nereo:current-marker-target", {
+                    detail: markerTarget || {}
+                }));
+                return window.dash_clientside.no_update;
+            }
+            """,
+            Output("app-loading-signal", "children", allow_duplicate=True),
+            Input("current-marker-target-store", "data"),
             prevent_initial_call=True,
         )
 
@@ -174,6 +236,7 @@ class CallbacksManager:
                 }
 
                 const requestId = pendingAction.requestId;
+                const waitsForCurrentMarkers = Boolean(pendingAction.waitsForCurrentMarkers);
                 const loader = document.getElementById("custom-global-loader");
                 const mapRoot = document.getElementById("map");
 
@@ -190,20 +253,31 @@ class CallbacksManager:
                         window.__nereoLoadingCleanupListeners();
                         window.__nereoLoadingCleanupListeners = null;
                     }
-                    if (window.renderLockTimer) {
-                        clearTimeout(window.renderLockTimer);
-                        window.renderLockTimer = null;
+                    if (window.__nereoLoadingFallbackTimer) {
+                        clearTimeout(window.__nereoLoadingFallbackTimer);
+                        window.__nereoLoadingFallbackTimer = null;
                     }
                     if (window.__nereoLoadingMaxTimer) {
                         clearTimeout(window.__nereoLoadingMaxTimer);
                         window.__nereoLoadingMaxTimer = null;
+                    }
+                    if (window.__nereoCurrentTargetListener) {
+                        window.removeEventListener("nereo:current-marker-target", window.__nereoCurrentTargetListener);
+                        window.__nereoCurrentTargetListener = null;
                     }
                 };
 
                 cleanup();
 
                 return new Promise((resolve) => {
+                    let completed = false;
+
                     const finalize = () => {
+                        if (completed) {
+                            return;
+                        }
+                        completed = true;
+
                         if (window.__nereoLoadingRequestId !== requestId) {
                             resolve(window.dash_clientside.no_update);
                             return;
@@ -214,41 +288,105 @@ class CallbacksManager:
                             loader.style.display = "none";
                         }
                         window.__nereoLoadingRequestId = null;
+                        window.targetMarkerCount = 0;
+                        window.currentMarkerCount = 0;
+                        window.currentMarkerBatchClass = null;
+                        window.__nereoCurrentMarkerTargetKnown = false;
+                        window.__nereoWaitsForCurrentMarkers = false;
+                        window.__nereoExpectedCurrentBatchClass = null;
+                        window.__nereoCountedCurrentMarkers = new WeakSet();
                         resolve(null);
                     };
 
-                    const scheduleFinalize = () => {
-                        if (window.renderLockTimer) {
-                            clearTimeout(window.renderLockTimer);
-                        }
-                        window.renderLockTimer = setTimeout(() => {
-                            requestAnimationFrame(() => {
-                                requestAnimationFrame(finalize);
-                            });
-                        }, 800);
+                    const finalizeAfterPaint = () => {
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(finalize);
+                        });
                     };
 
                     if (!mapRoot) {
-                        scheduleFinalize();
-                        window.__nereoLoadingMaxTimer = setTimeout(finalize, 8000);
+                        window.__nereoLoadingFallbackTimer = setTimeout(finalizeAfterPaint, 250);
+                        window.__nereoLoadingMaxTimer = setTimeout(finalizeAfterPaint, 8000);
                         return;
                     }
 
-                    window.__nereoLoadingObserver = new MutationObserver(() => {
-                        scheduleFinalize();
+                    const currentMarkerSelector = () => {
+                        if (!window.currentMarkerBatchClass) {
+                            return null;
+                        }
+                        const batchClass = window.CSS && window.CSS.escape
+                            ? window.CSS.escape(window.currentMarkerBatchClass)
+                            : window.currentMarkerBatchClass;
+                        return `.current-arrow-marker.${batchClass}`;
+                    };
+
+                    const countMarker = (marker) => {
+                        if (!marker || !(marker instanceof Element)) {
+                            return;
+                        }
+                        if (!window.__nereoCountedCurrentMarkers) {
+                            window.__nereoCountedCurrentMarkers = new WeakSet();
+                        }
+                        if (!window.__nereoCountedCurrentMarkers.has(marker)) {
+                            window.__nereoCountedCurrentMarkers.add(marker);
+                            window.currentMarkerCount += 1;
+                        }
+                    };
+
+                    const countMarkersFromNode = (node, selector) => {
+                        if (!node || !(node instanceof Element)) {
+                            return;
+                        }
+                        if (node.matches(selector)) {
+                            countMarker(node);
+                        }
+                        node.querySelectorAll(selector).forEach(countMarker);
+                    };
+
+                    const scanCurrentMarkers = (mutationRecords) => {
+                        if (!waitsForCurrentMarkers || !window.__nereoCurrentMarkerTargetKnown) {
+                            return false;
+                        }
+
+                        const target = Number(window.targetMarkerCount) || 0;
+                        if (target <= 0) {
+                            finalizeAfterPaint();
+                            return true;
+                        }
+
+                        const selector = currentMarkerSelector();
+                        if (!selector) {
+                            return false;
+                        }
+
+                        if (mutationRecords && mutationRecords.length) {
+                            mutationRecords.forEach((record) => {
+                                if (record.type === "childList") {
+                                    record.addedNodes.forEach((node) => countMarkersFromNode(node, selector));
+                                } else if (record.type === "attributes") {
+                                    countMarkersFromNode(record.target, selector);
+                                }
+                            });
+                        } else {
+                            mapRoot.querySelectorAll(selector).forEach(countMarker);
+                        }
+
+                        if (window.currentMarkerCount >= target) {
+                            finalizeAfterPaint();
+                            return true;
+                        }
+                        return false;
+                    };
+
+                    window.__nereoLoadingObserver = new MutationObserver((mutationRecords) => {
+                        scanCurrentMarkers(mutationRecords);
                     });
                     window.__nereoLoadingObserver.observe(mapRoot, {
                         childList: true,
                         subtree: true,
                         attributes: true,
+                        attributeFilter: ["class"],
                     });
-
-                    if (window.ResizeObserver) {
-                        window.__nereoLoadingResizeObserver = new ResizeObserver(() => {
-                            scheduleFinalize();
-                        });
-                        window.__nereoLoadingResizeObserver.observe(mapRoot);
-                    }
 
                     const eventTargets = [
                         mapRoot,
@@ -260,7 +398,13 @@ class CallbacksManager:
                     const listenerRecords = [];
                     eventTargets.forEach((target) => {
                         eventTypes.forEach((eventName) => {
-                            const handler = () => scheduleFinalize();
+                            const handler = () => {
+                                if (!waitsForCurrentMarkers) {
+                                    finalizeAfterPaint();
+                                } else {
+                                    scanCurrentMarkers();
+                                }
+                            };
                             target.addEventListener(eventName, handler, true);
                             listenerRecords.push([target, eventName, handler]);
                         });
@@ -271,8 +415,15 @@ class CallbacksManager:
                         });
                     };
 
-                    scheduleFinalize();
-                    window.__nereoLoadingMaxTimer = setTimeout(finalize, 8000);
+                    window.__nereoCurrentTargetListener = () => scanCurrentMarkers();
+                    window.addEventListener("nereo:current-marker-target", window.__nereoCurrentTargetListener);
+
+                    if (waitsForCurrentMarkers) {
+                        scanCurrentMarkers();
+                    } else {
+                        window.__nereoLoadingFallbackTimer = setTimeout(finalizeAfterPaint, 350);
+                    }
+                    window.__nereoLoadingMaxTimer = setTimeout(finalizeAfterPaint, 8000);
                 });
             }
             """,
@@ -707,20 +858,40 @@ class CallbacksManager:
 
         @app.callback(
             Output("current-layer-container", "children"),
+            Output("current-marker-target-store", "data"),
             Input("currents-visible-store", "data"),
             Input("sim-version-store", "data"),
         )
         def render_current_layers(is_visible, sim_version):
             service = get_service()
             current_speed_min, current_speed_max = service.current_speed_range
-            return build_current_layer_group(
-                is_visible,
-                sim_version,
-                service.get_environment_month(),
-                service.grid_features,
-                service.get_current_for_cell,
-                current_speed_min,
-                current_speed_max,
+            environment_month = service.get_environment_month()
+            marker_batch_class = current_marker_batch_class(sim_version)
+            target_marker_count = 0
+            if is_visible and environment_month is not None:
+                target_marker_count = sum(
+                    1
+                    for feature in service.grid_features
+                    if service.get_current_for_cell(feature["id"], environment_month) is not None
+                )
+
+            return (
+                build_current_layer_group(
+                    is_visible,
+                    sim_version,
+                    environment_month,
+                    service.grid_features,
+                    service.get_current_for_cell,
+                    current_speed_min,
+                    current_speed_max,
+                    marker_batch_class,
+                ),
+                {
+                    "target": target_marker_count,
+                    "batchClass": marker_batch_class,
+                    "version": sim_version,
+                    "visible": bool(is_visible),
+                },
             )
 
         @app.callback(

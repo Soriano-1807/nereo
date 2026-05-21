@@ -69,6 +69,10 @@ def current_arrow_size(speed, current_speed_min, current_speed_max):
     return 14 + (normalized * 16)
 
 
+def current_marker_batch_class(version):
+    return f"current-marker-batch-{version if version is not None else 'initial'}"
+
+
 def direction_label(direction_degrees):
     directions = [
         "Este",
@@ -138,6 +142,7 @@ def build_current_layers(
     get_current_for_cell,
     current_speed_min,
     current_speed_max,
+    marker_batch_class=None,
 ):
     if not is_visible or environment_month is None:
         return []
@@ -158,7 +163,7 @@ def build_current_layers(
                 position=feature_center(feature),
                 interactive=False,
                 iconOptions={
-                    "className": "current-arrow-marker",
+                    "className": f"current-arrow-marker {marker_batch_class}".strip(),
                     "html": (
                         f"<div title='Corriente {speed:.3f} m/s, {direction:.1f}°' "
                         f"style='width:0;height:0;border-top:{size * 0.28}px solid transparent;"
@@ -185,6 +190,7 @@ def build_current_layer_group(
     get_current_for_cell,
     current_speed_min,
     current_speed_max,
+    marker_batch_class=None,
 ):
     return dl.LayerGroup(
         id={"type": "current-layer", "version": version},
@@ -195,6 +201,7 @@ def build_current_layer_group(
             get_current_for_cell,
             current_speed_min,
             current_speed_max,
+            marker_batch_class or current_marker_batch_class(version),
         ),
     )
 

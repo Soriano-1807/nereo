@@ -145,6 +145,7 @@ class NereoApp:
                     dcc.Store(id="seed-input-source-store", data=self.config.default_selected_cell),
                     dcc.Store(id="grid-navigation-store", data=build_grid_navigation_data(service.grid)),
                     dcc.Store(id="loading-pending-action-store", data=None),
+                    dcc.Store(id="current-marker-target-store", data={"target": 0, "batchClass": None}),
                     dcc.Download(id="simulation-download"),
                     html.Div(
                         [
