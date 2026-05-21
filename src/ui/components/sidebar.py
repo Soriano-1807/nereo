@@ -428,7 +428,7 @@ def build_environment_banner(temperature_range, salinity_range):
             "padding": f"{overlay_clamp(4, 0.7, 8)} {overlay_clamp(10, 1.8, 22)}",
             "backgroundColor": "rgba(8, 47, 73, 0.94)",
             "color": "white",
-            "fontSize": overlay_width_clamp(10, 1, 12),
+            "fontSize": overlay_width_clamp(10, 1, 11),
             "fontWeight": "700",
             "lineHeight": "1.25",
             "boxShadow": "0 6px 18px rgba(15, 23, 42, 0.24)",
