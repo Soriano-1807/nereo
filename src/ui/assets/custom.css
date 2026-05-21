@@ -33,6 +33,54 @@
     max-width: 100%;
 }
 
+.app-sidebar .sidebar-title,
+.app-sidebar .sidebar-section-title,
+.app-sidebar .sidebar-stat,
+.app-sidebar .sidebar-stat span,
+.app-sidebar .sidebar-panel,
+.app-sidebar .sidebar-panel p,
+.app-sidebar .sidebar-panel span,
+.app-sidebar .sidebar-fit-area,
+.app-sidebar .sidebar-fit-area p,
+.app-sidebar .sidebar-fit-area span,
+.app-sidebar .sidebar-tab-group,
+.app-sidebar #seed-message,
+.app-sidebar #seed-selected-cell,
+.app-sidebar #seed-draft-summary,
+.app-sidebar #simulation-upload-message,
+.app-sidebar #density-controls-message,
+.app-sidebar #real-month-badge,
+.app-sidebar #simulation-progress,
+.legend-info-heading,
+.legend-info-title,
+.legend-info-metric,
+.legend-info-label,
+.legend-info-item,
+.legend-info-section,
+.legend-info-content,
+.app-loading-label {
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.app-sidebar p,
+.app-sidebar span,
+.app-sidebar label,
+.app-sidebar div:not(.dash-input):not(.Select-control):not(.Select-menu-outer):not(.Select-value):not(.Select-input),
+.legend-info-shell p,
+.legend-info-shell span,
+.legend-info-shell div,
+.app-loading-indicator span {
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
 html,
 body,
 #react-entry-point,
@@ -104,6 +152,9 @@ body,
 }
 
 .app-loading-indicator {
+    position: absolute;
+    top: 20px;
+    right: 60px;
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
@@ -112,6 +163,12 @@ body,
     color: #ffffff;
     font: 500 16px / 1 "Segoe UI", sans-serif;
     text-shadow: 0 1px 4px rgba(15, 23, 42, 0.78);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.app-loading-indicator.is-hidden {
+    display: none;
 }
 
 .app-loading-custom-spinner {

@@ -144,46 +144,24 @@ class NereoApp:
                     dcc.Store(id="loaded-simulation-store", data=False),
                     dcc.Store(id="seed-input-source-store", data=self.config.default_selected_cell),
                     dcc.Store(id="grid-navigation-store", data=build_grid_navigation_data(service.grid)),
+                    dcc.Store(id="loading-visible-store", data=False),
+                    dcc.Store(id="loading-pending-action-store", data=None),
                     dcc.Download(id="simulation-download"),
                     html.Div(
                         [
                             build_map_view_controls(),
                             html.Div(
-                                dcc.Loading(
-                                    id="app-top-loading",
-                                    type="default",
-                                    color="#ffffff",
-                                    delay_show=0,
-                                    delay_hide=650,
-                                    children=html.Div(id="app-loading-signal", style={"display": "none"}),
-                                    target_components={
-                                        "app-loading-signal": "children",
-                                        "grid-layer": "children",
-                                        "current-layer-container": "children",
-                                        "transport-path-layer": "children",
-                                        "selection-layer": "children",
-                                        "map": "viewport",
-                                    },
-                                    overlay_style={"visibility": "visible", "backgroundColor": "transparent"},
-                                    custom_spinner=html.Div(
+                                [
+                                    html.Div(id="app-loading-signal", style={"display": "none"}),
+                                    html.Div(
                                         [
                                             html.Span(className="app-loading-custom-spinner"),
                                             html.Span("Cargando...", className="app-loading-label"),
                                         ],
-                                        className="app-loading-indicator",
-                                        style={
-                                            "position": "absolute",
-                                            "top": "20px",
-                                            "right": "56px",
-                                            "display": "flex",
-                                            "alignItems": "center",
-                                            "gap": "10px",
-                                            "zIndex": 1000,
-                                        },
+                                        id="app-loading-indicator",
+                                        className="app-loading-indicator is-hidden",
                                     ),
-                                    parent_style={"position": "absolute", "inset": "0", "pointerEvents": "none"},
-                                    style={"display": "block"},
-                                ),
+                                ],
                                 style={"position": "absolute", "inset": "0", "pointerEvents": "none", "zIndex": 1000},
                             ),
                             dl.Map(

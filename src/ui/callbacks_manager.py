@@ -140,6 +140,162 @@ class CallbacksManager:
         app = self.app
         get_service = self._service_getter
 
+        app.clientside_callback(
+            """
+            function(stepClicks, currentsClicks, transportClicks, seedApplyClicks, currentsVisible, transportVisible) {
+                const triggered = dash_clientside.callback_context.triggered_id;
+                if (!triggered) {
+                    return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+                }
+
+                const buildPendingAction = function(action, targets) {
+                    const requestId = `${action}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                    window.__nereoLoadingRequestId = requestId;
+                    return [true, { action, waitFor: targets, seen: {}, requestId }];
+                };
+
+                if (triggered === "step-btn") {
+                    const waitFor = ["grid"];
+                    if (currentsVisible) {
+                        waitFor.push("currents");
+                    }
+                    if (transportVisible) {
+                        waitFor.push("transport");
+                    }
+                    return buildPendingAction("step", waitFor);
+                }
+
+                if (triggered === "seed-apply-btn") {
+                    const waitFor = ["grid"];
+                    if (currentsVisible) {
+                        waitFor.push("currents");
+                    }
+                    if (transportVisible) {
+                        waitFor.push("transport");
+                    }
+                    return buildPendingAction("seed-apply", waitFor);
+                }
+
+                if (triggered === "toggle-currents-btn") {
+                    return buildPendingAction("toggle-currents", ["currents"]);
+                }
+
+                if (triggered === "toggle-transport-btn") {
+                    return buildPendingAction("toggle-transport", ["transport"]);
+                }
+
+                return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+            }
+            """,
+            Output("loading-visible-store", "data"),
+            Output("loading-pending-action-store", "data"),
+            Input("step-btn", "n_clicks"),
+            Input("toggle-currents-btn", "n_clicks"),
+            Input("toggle-transport-btn", "n_clicks"),
+            Input("seed-apply-btn", "n_clicks"),
+            State("currents-visible-store", "data"),
+            State("transport-visible-store", "data"),
+            prevent_initial_call=True,
+        )
+
+        app.clientside_callback(
+            """
+            function(pendingAction) {
+                if (!pendingAction || !pendingAction.requestId) {
+                    return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+                }
+
+                const requestId = pendingAction.requestId;
+                window.__nereoLoadingRequestId = requestId;
+
+                if (window.__nereoLoadingObserver) {
+                    window.__nereoLoadingObserver.disconnect();
+                    window.__nereoLoadingObserver = null;
+                }
+                if (window.__nereoLoadingQuietTimer) {
+                    clearTimeout(window.__nereoLoadingQuietTimer);
+                    window.__nereoLoadingQuietTimer = null;
+                }
+                if (window.__nereoLoadingMaxTimer) {
+                    clearTimeout(window.__nereoLoadingMaxTimer);
+                    window.__nereoLoadingMaxTimer = null;
+                }
+
+                return new Promise((resolve) => {
+                    const finalize = () => {
+                        if (window.__nereoLoadingRequestId !== requestId) {
+                            resolve([window.dash_clientside.no_update, window.dash_clientside.no_update]);
+                            return;
+                        }
+
+                        if (window.__nereoLoadingObserver) {
+                            window.__nereoLoadingObserver.disconnect();
+                            window.__nereoLoadingObserver = null;
+                        }
+                        if (window.__nereoLoadingQuietTimer) {
+                            clearTimeout(window.__nereoLoadingQuietTimer);
+                            window.__nereoLoadingQuietTimer = null;
+                        }
+                        if (window.__nereoLoadingMaxTimer) {
+                            clearTimeout(window.__nereoLoadingMaxTimer);
+                            window.__nereoLoadingMaxTimer = null;
+                        }
+                        window.__nereoLoadingRequestId = null;
+                        resolve([false, null]);
+                    };
+
+                    const scheduleFinish = () => {
+                        if (window.__nereoLoadingQuietTimer) {
+                            clearTimeout(window.__nereoLoadingQuietTimer);
+                        }
+                        window.__nereoLoadingQuietTimer = setTimeout(() => {
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(finalize);
+                            });
+                        }, 400);
+                    };
+
+                    const mapRoot = document.getElementById("map");
+                    if (!mapRoot) {
+                        scheduleFinish();
+                        window.__nereoLoadingMaxTimer = setTimeout(finalize, 6000);
+                        return;
+                    }
+
+                    window.__nereoLoadingObserver = new MutationObserver(() => {
+                        scheduleFinish();
+                    });
+                    window.__nereoLoadingObserver.observe(mapRoot, {
+                        childList: true,
+                        subtree: true,
+                        attributes: true,
+                    });
+
+                    mapRoot.addEventListener("layeradd", scheduleFinish, { once: true });
+                    mapRoot.addEventListener("overlayadd", scheduleFinish, { once: true });
+                    mapRoot.addEventListener("moveend", scheduleFinish, { once: true });
+
+                    scheduleFinish();
+                    window.__nereoLoadingMaxTimer = setTimeout(finalize, 6000);
+                });
+            }
+            """,
+            Output("loading-visible-store", "data", allow_duplicate=True),
+            Output("loading-pending-action-store", "data", allow_duplicate=True),
+            Input("loading-pending-action-store", "data"),
+            prevent_initial_call=True,
+        )
+
+        app.clientside_callback(
+            """
+            function(isVisible) {
+                return isVisible ? "app-loading-indicator" : "app-loading-indicator is-hidden";
+            }
+            """,
+            Output("app-loading-indicator", "className"),
+            Input("loading-visible-store", "data"),
+        )
+
         @app.callback(
             Output("sim-version-store", "data"),
             Output("seed-active-store", "data"),
