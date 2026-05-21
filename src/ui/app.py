@@ -237,3 +237,4 @@ class NereoApp:
 
 dashboard = NereoApp()
 app = dashboard.app
+server = app.server
