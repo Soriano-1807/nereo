@@ -16,7 +16,6 @@ from src.ui.components.config_panel import build_config_panel
 from src.ui.components.sidebar import (
     build_density_control_panel,
     build_detail_panel,
-    build_environment_banner,
     build_open_sidebar_button,
     build_real_month_badge_children,
     build_sidebar,
@@ -106,13 +105,13 @@ class NereoApp:
             children=html.Div(
                 [
                     dcc.Store(id="selected-cell-store", data=self.config.default_selected_cell),
-                    dcc.Store(id="sidebar-visible-store", data=True),
+                    dcc.Store(id="sidebar-visible-store", data=False),
                     dcc.Store(id="sidebar-active-panel-store", data="summary"),
                     dcc.Store(id="currents-visible-store", data=False),
                     dcc.Store(id="transport-visible-store", data=False),
                     dcc.Store(id="sim-version-store", data=0),
                     dcc.Store(id="seed-active-store", data=True),
-                    dcc.Store(id="seed-mode", data="random"),
+                    dcc.Store(id="seed-mode", data="assisted"),
                     dcc.Store(id="seed-draft-store", data={}),
                     dcc.Store(id="density-config-store", data=default_density_config),
                     dcc.Store(id="loaded-simulation-store", data=False),
@@ -120,7 +119,6 @@ class NereoApp:
                     dcc.Download(id="simulation-download"),
                     html.Div(
                         [
-                            build_environment_banner(self.service.temperature_range, self.service.salinity_range),
                             build_map_view_controls(),
                             dl.Map(
                                 id="map",
@@ -129,7 +127,7 @@ class NereoApp:
                                     self.service.grid.west + ((self.service.grid.east - self.service.grid.west) * 0.33),
                                 ],
                                 zoom=7.8,
-                                minZoom=7.0,
+                                minZoom=6.0,
                                 maxZoom=10.0,
                                 zoomSnap=0.25,
                                 zoomDelta=0.25,
@@ -185,7 +183,7 @@ class NereoApp:
                             ),
                             html.Div(
                                 id="sidebar-container",
-                                className="sidebar-shell",
+                                className="sidebar-shell custom-scrollbar",
                                 children=build_sidebar(
                                     self.config.default_selected_cell,
                                     detail_content,
@@ -194,7 +192,7 @@ class NereoApp:
                                     self.lon_lines,
                                     SIDEBAR_TITLE_ASSET_NAME,
                                 ),
-                                style=sidebar_style(True),
+                                style=sidebar_style(False),
                             ),
                             html.Div(
                                 id="seed-panel-container",
@@ -202,14 +200,19 @@ class NereoApp:
                                     density_panel,
                                     self.config.default_selected_cell,
                                     {},
-                                    "random",
+                                    "assisted",
                                     SIDEBAR_TITLE_ASSET_NAME,
                                 ),
                             ),
                             html.Div(id="open-sidebar-container", children=build_open_sidebar_button(), style={"display": "none"}),
                             html.Div(
                                 id="floating-legends-help",
-                                children=build_floating_legends_help(current_speed_min, current_speed_max),
+                                children=build_floating_legends_help(
+                                    current_speed_min,
+                                    current_speed_max,
+                                    self.service.temperature_range,
+                                    self.service.salinity_range,
+                                ),
                             ),
                             html.Div(
                                 id="real-month-badge",

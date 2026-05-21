@@ -9,11 +9,31 @@ def overlay_clamp(min_px, preferred_vmin, max_px):
     return f"clamp({min_px}px, {preferred_vmin}vmin, {max_px}px)"
 
 
-def overlay_width_clamp(min_px, preferred_dvw, max_px):
-    return f"clamp({min_px}px, {preferred_dvw}dvw, {max_px}px)"
-
-
 PROGRESS_BAR_HEIGHT = "var(--bottom-bar-height)"
+
+
+def sidebar_logo_image_style():
+    return {
+        "width": "calc(80% )",
+        "maxWidth": "none",
+        "height": sidebar_clamp(70, 7, 85),
+        "marginLeft": "-10px",
+        "marginRight": "-10px",
+        "objectFit": "cover",
+        "objectPosition": "center",
+        "display": "block",
+        "flex": "0 1 auto",
+    }
+
+
+def sidebar_logo_wrapper_style():
+    return {
+        "display": "flex",
+        "alignItems": "center",
+        "minWidth": "0",
+        "flex": "1 1 auto",
+        "overflow": "hidden",
+    }
 
 
 def sidebar_row_count(component):
@@ -65,8 +85,7 @@ def sidebar_fit_area_style(detail_content, summary_rows):
     return {
         "flex": "1 1 auto",
         "minHeight": "0",
-        "overflowY": "hidden",
-        "overflowX": "hidden",
+        "overflow": "hidden",
         "display": "flex",
         "flexDirection": "column",
         "justifyContent": "flex-start",
@@ -117,14 +136,14 @@ def sidebar_tab_button_style(is_active):
     return {
         "flex": "1 1 0",
         "minWidth": "0",
-        "padding": f"{sidebar_clamp(5, 0.75, 8)} {sidebar_clamp(7, 1, 11)}",
+        "padding": f"{sidebar_clamp(2, 0.65, 8)} {sidebar_clamp(2, 0.75, 11)}",
         "border": "1px solid rgba(255, 255, 255, 0.22)" if is_active else "1px solid rgba(255, 255, 255, 0.10)",
         "borderRadius": sidebar_clamp(7, 1.15, 10),
         "backgroundColor": "rgba(56, 189, 248, 0.22)" if is_active else "rgba(255, 255, 255, 0.07)",
         "color": "#ffffff",
         "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.10)" if is_active else "none",
         "cursor": "pointer",
-        "fontSize": sidebar_clamp(9, 1.35, 12),
+        "fontSize": sidebar_clamp(6, 1.05, 12),
         "fontWeight": "800" if is_active else "650",
         "lineHeight": "1.12",
         "letterSpacing": "0",
@@ -132,7 +151,9 @@ def sidebar_tab_button_style(is_active):
         "display": "flex",
         "alignItems": "center",
         "justifyContent": "center",
-        "whiteSpace": "nowrap",
+        "whiteSpace": "normal",
+        "overflow": "hidden",
+        "overflowWrap": "anywhere",
         "transition": "background-color 160ms ease, border-color 160ms ease",
     }
 
@@ -143,7 +164,7 @@ def sidebar_tab_group_style():
         "display": "flex",
         "alignItems": "center",
         "justifyContent": "space-between",
-        "gap": sidebar_clamp(5, 0.8, 8),
+        "gap": sidebar_clamp(2, 0.55, 8),
         "padding": sidebar_clamp(4, 0.7, 7),
         "borderRadius": sidebar_clamp(8, 1.3, 12),
         "backgroundColor": "rgba(255, 255, 255, 0.05)",
@@ -394,51 +415,23 @@ def build_density_control_panel(
         },
     )
 
-
-def build_environment_banner(temperature_range, salinity_range):
+def build_environment_metric_lines(temperature_range, salinity_range):
     temperature_min_c, temperature_max_c = temperature_range
     salinity_min, salinity_max = salinity_range
     temperature_text = "Sin datos"
     if temperature_min_c is not None and temperature_max_c is not None:
-        temperature_text = f"{temperature_min_c:.1f} °C - {temperature_max_c:.1f} °C"
+        temperature_text = f"{temperature_min_c:.1f} \u00b0C - {temperature_max_c:.1f} \u00b0C"
 
     salinity_text = "Sin datos"
     if salinity_min is not None and salinity_max is not None:
         salinity_text = f"{salinity_min:.2f} PSU - {salinity_max:.2f} PSU"
 
-    return html.Div(
-        [
-            html.Span(
-                " | ".join(
-                    [
-                        f"Temperatura en el área últimos 4 años: {temperature_text}",
-                        "Umbral letal del pez león: ≤ 10 °C",
-                        f"Salinidad del área últimos 4 años: {salinity_text}",
-                        "Rango apto para colonización: 34.11 PSU - 38.11 PSU",
-                    ]
-                )
-            ),
-        ],
-        style={
-            "position": "absolute",
-            "top": "0",
-            "left": "0",
-            "right": "0",
-            "zIndex": "1100",
-            "padding": f"{overlay_clamp(4, 0.7, 8)} {overlay_clamp(10, 1.8, 22)}",
-            "backgroundColor": "rgba(8, 47, 73, 0.94)",
-            "color": "white",
-            "fontSize": overlay_width_clamp(10, 1, 10),
-            "fontWeight": "700",
-            "lineHeight": "1.25",
-            "boxShadow": "0 6px 18px rgba(15, 23, 42, 0.24)",
-            "overflow": "hidden",
-            "textAlign": "center",
-            "whiteSpace": "normal",
-            "wordBreak": "normal",
-            "overflowWrap": "anywhere",
-        },
-    )
+    return [
+        f"Temperatura en el \u00e1rea \u00faltimos 4 a\u00f1os: {temperature_text}",
+        "Umbral letal del pez le\u00f3n: \u2264 10 \u00b0C",
+        f"Salinidad del \u00e1rea \u00faltimos 4 a\u00f1os: {salinity_text}",
+        "Rango apto para colonizaci\u00f3n: 34.11 PSU - 38.11 PSU",
+    ]
 
 
 def build_detail_panel(selected_cell_id, cells_by_id, build_current_detail, cell_state_label):
@@ -545,7 +538,7 @@ def build_sidebar_summary(summary_rows):
         html.Div(
             id="summary-body",
             children=summary_rows,
-            className="seed-panel-scroll",
+            className="sidebar-panel-scroll custom-scrollbar",
             style=sidebar_summary_body_style(summary_rows),
         ),
     ]
@@ -631,14 +624,15 @@ def build_simulation_progress_children(real_month_label, current_month, progress
 def sidebar_style(is_open=True):
     return {
         "position": "absolute",
-        "top": sidebar_clamp(30, 5, 42),
+        "top": "0",
         "bottom": "calc(var(--bottom-bar-height) + 0px)",
         "left": "0",
         "zIndex": "1050",
+        "display": "block" if is_open else "none",
         "width": "clamp(11rem, 22vw, 22rem)",
         "maxWidth": "92vw",
         "overflowX": "hidden",
-        "overflowY": "auto",
+        "overflowY": "hidden",
         "padding": sidebar_clamp(8, 1.35, 14),
         "backgroundColor": "rgba(0, 31, 63, 0.72)",
         "color": "white",
@@ -651,6 +645,7 @@ def sidebar_style(is_open=True):
         "WebkitBackdropFilter": "blur(12px) saturate(120%)",
         "transform": "translateX(0)" if is_open else "translateX(-100%)",
         "transition": "transform 180ms ease",
+        "boxSizing": "border-box",
     }
 
 
@@ -713,26 +708,10 @@ def build_sidebar(
                                 src=f"/assets/{sidebar_title_asset_name}",
                                 alt="Nereo",
                                 className="sidebar-brand-image",
-                                style={
-                                    "width": "calc(80% )",
-                                    "maxWidth": "none",
-                                    "height": sidebar_clamp(65, 7, 80),
-                                    "marginLeft": "-10px",
-                                    "marginRight": "-10px",
-                                    "objectFit": "cover",
-                                    "objectPosition": "center",
-                                    "display": "block",
-                                    "flex": "0 1 auto",
-                                },
+                                style=sidebar_logo_image_style(),
                             ),
                         ],
-                        style={
-                            "display": "flex",
-                            "alignItems": "center",
-                            "minWidth": "0",
-                            "flex": "1 1 auto",
-                            "overflow": "hidden",
-                        },
+                        style=sidebar_logo_wrapper_style(),
                     ),
                     close_button,
                 ],
@@ -772,16 +751,18 @@ def build_sidebar(
                     html.Div(
                         build_sidebar_summary(summary_rows),
                         id="summary-panel-container",
+                        className="sidebar-panel-container",
                         style=sidebar_panel_container_style(True),
                     ),
                     html.Div(
                         html.Div(
                             id="detail-body",
                             children=detail_content,
-                            className="sidebar-panel sidebar-detail-panel seed-panel-scroll",
+                            className="sidebar-panel sidebar-detail-panel sidebar-panel-scroll custom-scrollbar",
                             style=sidebar_detail_panel_style(detail_content),
                         ),
                         id="detail-panel-container",
+                        className="sidebar-panel-container",
                         style=sidebar_panel_container_style(False),
                     ),
                     build_save_simulation_button(),

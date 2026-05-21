@@ -1,6 +1,8 @@
 import dash_leaflet as dl
 from dash import html
 
+from src.ui.components.sidebar import build_environment_metric_lines
+
 
 GRID_STATE_STYLES = {
     "prohibida": {
@@ -382,19 +384,29 @@ def build_transport_path_layers(transport_events, features_by_id, cells_by_id, r
     return layers
 
 
-def build_floating_legends_help(current_speed_min=None, current_speed_max=None):
+def build_floating_legends_help(
+    current_speed_min=None,
+    current_speed_max=None,
+    temperature_range=(None, None),
+    salinity_range=(None, None),
+):
+    metric_lines = build_environment_metric_lines(temperature_range, salinity_range)
     return html.Div(
         [
             html.Button(
                 "i",
                 className="legend-info-button",
-                title="Ver leyendas",
+                title="Ver informaci\u00f3n general",
                 type="button",
-                **{"aria-label": "Ver leyendas"},
+                **{"aria-label": "Ver informaci\u00f3n general"},
             ),
             html.Div(
                 [
-                    html.Div("Leyendas", className="legend-info-heading"),
+                    html.Div("Informaci\u00f3n General", className="legend-info-heading"),
+                    html.Div(
+                        [html.Div(metric_line, className="legend-info-metric") for metric_line in metric_lines],
+                        className="legend-info-metrics",
+                    ),
                     html.Div(
                         [
                             build_grid_legend_help_section(),
@@ -404,7 +416,7 @@ def build_floating_legends_help(current_speed_min=None, current_speed_max=None):
                         className="legend-info-content",
                     ),
                 ],
-                className="legend-info-popover",
+                className="legend-info-popover custom-scrollbar",
                 role="tooltip",
             ),
         ],
@@ -451,7 +463,7 @@ def build_current_legend_help_section(current_speed_min, current_speed_max):
 
 def build_transport_legend_help_section():
     return legend_help_section(
-        "Transporte",
+        "Transporte previsto",
         [
             line_legend_help_item("#22c55e", "Larva se asienta en la grilla"),
             line_legend_help_item("#ef4444", "Larva sale de la grilla"),

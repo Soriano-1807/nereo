@@ -140,6 +140,8 @@ class CallbacksManager:
         @app.callback(
             Output("sim-version-store", "data"),
             Output("seed-active-store", "data"),
+            Output("seed-mode", "data", allow_duplicate=True),
+            Output("sidebar-visible-store", "data", allow_duplicate=True),
             Output("seed-draft-store", "data", allow_duplicate=True),
             Output("density-config-store", "data"),
             Output("loaded-simulation-store", "data"),
@@ -188,23 +190,25 @@ class CallbacksManager:
 
             if trigger == "reset-btn":
                 service.reset_simulation()
-                return sim_version + 1, True, {}, density_config, False, False, False, "", "", "", None, None, None
+                return sim_version + 1, True, "assisted", False, {}, density_config, False, False, False, "", "", "", None, None, None
 
             if trigger == "step-btn":
                 if seed_active:
-                    return sim_version, True, seed_draft, density_config, loaded_simulation, no_update, no_update, "Aplica una semilla antes de avanzar.", "", no_update, no_update, no_update, no_update
+                    return sim_version, True, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "Aplica una semilla antes de avanzar.", "", no_update, no_update, no_update, no_update
                 if not service.can_advance_simulation():
                     max_month = service.simulation_parameters.max_simulation_month
-                    return sim_version, False, seed_draft, density_config, loaded_simulation, no_update, no_update, f"La simulacion no puede avanzar mas alla del mes {max_month}.", "", no_update, no_update, no_update, no_update
+                    return sim_version, False, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, f"La simulacion no puede avanzar mas alla del mes {max_month}.", "", no_update, no_update, no_update, no_update
                 service.apply_density_config(typed_density_config)
                 service.step()
-                return sim_version + 1, False, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update
+                return sim_version + 1, False, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update
 
             if trigger == "seed-apply-btn":
                 if loaded_simulation:
                     return (
                         sim_version,
                         seed_active,
+                        no_update,
+                        no_update,
                         seed_draft,
                         density_config,
                         True,
@@ -224,7 +228,7 @@ class CallbacksManager:
                     adult_mortality_multiplier,
                 )
                 if density_error:
-                    return sim_version, seed_active, seed_draft, density_config, False, no_update, no_update, "", density_error, no_update, no_update, no_update, no_update
+                    return sim_version, seed_active, no_update, False, seed_draft, density_config, False, no_update, no_update, "", density_error, no_update, no_update, no_update, no_update
 
                 density_config = validated_density.as_dict()
                 service.apply_density_config(validated_density)
@@ -232,28 +236,29 @@ class CallbacksManager:
                 if seed_mode == "random":
                     generated_seed = service.build_probabilistic_seed()
                     service.apply_seed(generated_seed)
-                    return sim_version + 1, False, generated_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
+                    return sim_version + 1, False, no_update, True, generated_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
 
                 if seed_mode == "manual":
                     error = service.validate_seed(seed_draft)
                     if error:
-                        return sim_version, True, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update
+                        return sim_version, True, no_update, False, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update
                     service.apply_seed(seed_draft)
-                    return sim_version + 1, False, seed_draft, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
+                    return sim_version + 1, False, no_update, True, seed_draft, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
 
                 if seed_mode == "assisted":
                     error = service.validate_seed(seed_draft) if seed_draft else None
                     if error:
-                        return sim_version, True, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update
+                        return sim_version, True, no_update, False, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update
                     assisted_seed = service.build_assisted_seed(seed_draft)
                     service.apply_seed(assisted_seed)
-                    return sim_version + 1, False, assisted_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
+                    return sim_version + 1, False, no_update, True, assisted_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
 
-            return sim_version, seed_active, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update
+            return sim_version, seed_active, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update
 
         @app.callback(
             Output("sim-version-store", "data", allow_duplicate=True),
             Output("seed-active-store", "data", allow_duplicate=True),
+            Output("sidebar-visible-store", "data", allow_duplicate=True),
             Output("seed-draft-store", "data", allow_duplicate=True),
             Output("density-config-store", "data", allow_duplicate=True),
             Output("loaded-simulation-store", "data", allow_duplicate=True),
@@ -273,13 +278,13 @@ class CallbacksManager:
         )
         def load_simulation_from_csv(contents, filename, sim_version):
             if not contents:
-                return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+                return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
             try:
                 csv_text = self.decode_upload_contents(contents)
                 loaded_state = self.csv_serializer.load_into(service, csv_text)
             except ValueError as error:
-                return no_update, no_update, no_update, no_update, no_update, no_update, no_update, str(error), no_update, no_update, no_update, None, None, None
+                return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, str(error), no_update, no_update, no_update, None, None, None
 
             density_config = loaded_state["density_config"]
             message = f"Simulacion cargada desde {filename or 'archivo.csv'}."
@@ -287,6 +292,7 @@ class CallbacksManager:
             return (
                 next_version,
                 False,
+                True,
                 {},
                 density_config,
                 True,
@@ -372,7 +378,7 @@ class CallbacksManager:
             prevent_initial_call=True,
         )
         def update_seed_mode(random_clicks, manual_clicks, assisted_clicks, current_mode, loaded_simulation):
-            next_mode = current_mode or "random"
+            next_mode = current_mode or "assisted"
             if loaded_simulation:
                 return (
                     next_mode,
@@ -754,7 +760,9 @@ class CallbacksManager:
             Output("sidebar-container", "style"),
             Output("open-sidebar-container", "style"),
             Input("sidebar-visible-store", "data"),
+            Input("seed-active-store", "data"),
         )
-        def render_sidebar(is_visible):
-            open_button_style = {"display": "none" if is_visible else "block"}
+        def render_sidebar(is_visible, seed_active):
+            is_visible = bool(is_visible) and not bool(seed_active)
+            open_button_style = {"display": "none" if is_visible or seed_active else "block"}
             return sidebar_style(is_visible), open_button_style

@@ -4,6 +4,8 @@ from src.ui.components.sidebar import (
     SIDEBAR_BUTTON_STYLE,
     seed_input,
     sidebar_clamp,
+    sidebar_logo_image_style,
+    sidebar_logo_wrapper_style,
 )
 
 
@@ -15,7 +17,7 @@ SEED_PANEL_BUTTON_STYLE = {
     "whiteSpace": "normal",
     "overflowWrap": "anywhere",
     "fontSize": sidebar_clamp(8, 1.35, 12),
-    "padding": f"{sidebar_clamp(3, 0.55, 6)} {sidebar_clamp(5, 0.85, 10)}",
+    "padding": f"{sidebar_clamp(2, 0.45, 5)} {sidebar_clamp(4, 0.7, 8)}",
     "lineHeight": "1.1",
     "minWidth": "0",
     "width": "100%",
@@ -34,8 +36,8 @@ def config_panel_card_style(has_divider=False):
     return {
         "display": "flex",
         "flexDirection": "column",
-        "gap": sidebar_clamp(3, 0.45, 6),
-        "padding": f"{sidebar_clamp(6, 0.95, 10)} {sidebar_clamp(7, 1.1, 12)}",
+        "gap": sidebar_clamp(2, 0.35, 5),
+        "padding": f"{sidebar_clamp(4, 0.65, 7)} {sidebar_clamp(5, 0.8, 8)}",
         "borderRadius": "0",
         "backgroundColor": "transparent",
         "border": "none",
@@ -50,17 +52,23 @@ def config_panel_card_style(has_divider=False):
 
 def config_panel_unified_body_style():
     return {
-        "flex": "1 0 auto",
-        "minHeight": "100%",
+        "flex": "0 0 auto",
+        "minHeight": "auto",
+        "height": "auto",
+        "width": "88%",
+        "maxWidth": "88%",
+        "alignSelf": "center",
         "display": "flex",
         "flexDirection": "column",
         "overflow": "visible",
+        "padding": sidebar_clamp(10, 1.6, 18),
+        "marginTop": "auto",
+        "marginBottom": "auto",
         "borderRadius": sidebar_clamp(8, 1.5, 14),
-        "backgroundColor": "rgba(255, 255, 255, 0.055)",
-        "border": "1px solid rgba(255, 255, 255, 0.12)",
-        "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)",
-        "backdropFilter": "blur(12px) saturate(120%)",
-        "WebkitBackdropFilter": "blur(12px) saturate(120%)",
+        "backgroundColor": "rgba(15, 23, 42, 0.42)",
+        "border": "1px solid rgba(255, 255, 255, 0.10)",
+        "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+        "gap": sidebar_clamp(6, 0.9, 10),
     }
 
 
@@ -70,8 +78,10 @@ def config_panel_middle_style():
         "minHeight": "0",
         "display": "flex",
         "flexDirection": "column",
+        "alignItems": "stretch",
         "overflowY": "auto",
         "overflowX": "hidden",
+        "padding": f"{sidebar_clamp(6, 1.0, 12)} 0",
     }
 
 
@@ -140,25 +150,13 @@ def build_seed_brand(sidebar_title_asset_name="Titulo.png"):
                         src=f"/assets/{sidebar_title_asset_name}",
                         alt="Nereo",
                         className="sidebar-brand-image sidebar-logo",
-                        style={
-                            "width": "calc(80% )",
-                            "maxWidth": "none",
-                            "height": sidebar_clamp(65, 7, 80),
-                            "marginLeft": "-10px",
-                            "marginRight": "-10px",
-                            "objectFit": "cover",
-                            "objectPosition": "center",
-                            "display": "block",
-                            "flex": "0 1 auto",
-                        },
+                        style=sidebar_logo_image_style(),
                     ),
                 ],
                 style={
-                    "display": "flex",
-                    "alignItems": "center",
-                    "minWidth": "0",
-                    "flex": "1 1 auto",
-                    "overflow": "hidden",
+                    **sidebar_logo_wrapper_style(),
+                    "justifyContent": "center",
+                    "width": "100%",
                 },
             ),
         ],
@@ -166,15 +164,17 @@ def build_seed_brand(sidebar_title_asset_name="Titulo.png"):
             "flex": "0 1 auto",
             "flexShrink": "0",
             "display": "flex",
-            "justifyContent": "space-between",
+            "justifyContent": "center",
             "alignItems": "center",
-            "gap": sidebar_clamp(4, 0.75, 9),
+            "gap": sidebar_clamp(7, 1.15, 12),
             "overflow": "hidden",
+            "width": "100%",
         },
+        
     )
 
 
-def build_seed_mode_selector(active_mode="random"):
+def build_seed_mode_selector(active_mode="assisted"):
     return html.Div(
         [
             html.Button("Inicio aleatorio", id="seed-mode-random-btn", n_clicks=0, className="sidebar-button", style=seed_mode_button_style(active_mode == "random")),
@@ -213,19 +213,19 @@ def build_simulation_upload_panel():
                     "color": "#bfdbfe",
                     "fontWeight": "700",
                     "minHeight": sidebar_clamp(6, 1.0, 12),
-                    "fontSize": sidebar_clamp(8, 1.25, 12),
+            "fontSize": sidebar_clamp(8, 1.25, 12),
                     "lineHeight": "1.15",
                 },
             ),
         ],
         style={
             **config_panel_card_style(has_divider=True),
-            "paddingBottom": sidebar_clamp(5, 0.75, 8),
+            "paddingBottom": sidebar_clamp(4, 0.6, 6),
         },
     )
 
 
-def build_seed_mode_content(selected_cell_id, seed_draft, seed_mode="random"):
+def build_seed_mode_content(selected_cell_id, seed_draft, seed_mode="assisted"):
     return html.Div(
         [
             html.Div(
@@ -303,16 +303,16 @@ def build_seed_mode_content(selected_cell_id, seed_draft, seed_mode="random"):
 
 
 def config_panel_style():
-    panel_top = sidebar_clamp(30, 5, 42)
     return {
         "position": "absolute",
-        "top": panel_top,
+        "top": "0",
+        "bottom": "var(--bottom-bar-height)",
         "left": "0",
         "zIndex": "1050",
         "width": "clamp(13rem, 24vw, 24rem)",
         "maxWidth": "94vw",
-        "height": f"calc(100dvh - {panel_top} - var(--bottom-bar-height))",
-        "maxHeight": f"calc(100dvh - {panel_top} - var(--bottom-bar-height))",
+        "height": "auto",
+        "maxHeight": "none",
         "overflowX": "hidden",
         "overflowY": "hidden",
         "backgroundColor": "rgba(0, 31, 63, 0.46)",
@@ -323,39 +323,29 @@ def config_panel_style():
         "boxShadow": "6px 8px 28px rgba(15, 23, 42, 0.22)",
         "backdropFilter": "blur(12px) saturate(120%)",
         "WebkitBackdropFilter": "blur(12px) saturate(120%)",
-        "padding": sidebar_clamp(5, 0.75, 9),
+        "padding": sidebar_clamp(4, 0.65, 7),
         "fontSize": sidebar_clamp(9, 1.6, 14),
         "display": "flex",
         "flexDirection": "column",
-        "gap": sidebar_clamp(4, 0.6, 8),
+        "gap": sidebar_clamp(12, 1.8, 20),
         "minHeight": "0",
         "overflow": "hidden",
         "boxSizing": "border-box",
     }
 
 
-def build_config_panel(density_panel, selected_cell_id, seed_draft, seed_mode="random", sidebar_title_asset_name="Titulo.png"):
+def build_config_panel(density_panel, selected_cell_id, seed_draft, seed_mode="assisted", sidebar_title_asset_name="Titulo.png"):
     return html.Div(
         [
             html.Div(
                 [
                     build_seed_brand(sidebar_title_asset_name),
-                    html.H3(
-                        "Configuracion inicial",
-                        className="sidebar-title",
-                        style={
-                            "margin": "0",
-                            "color": "white",
-                            "fontSize": sidebar_clamp(13, 2.2, 20),
-                            "lineHeight": "1.05",
-                        },
-                    ),
                 ],
                 style={
                     "flex": "0 0 auto",
                     "display": "flex",
                     "flexDirection": "column",
-                    "gap": sidebar_clamp(3, 0.55, 7),
+                    "gap": "0",
                     "minHeight": "0",
                     "overflow": "hidden",
                 },
@@ -381,7 +371,7 @@ def build_config_panel(density_panel, selected_cell_id, seed_draft, seed_mode="r
                                 ],
                                 style={
                                     **config_panel_card_style(),
-                                    "minHeight": "5rem",
+                                    "minHeight": "4rem",
                                     "overflow": "visible",
                                 },
                             ),
@@ -389,7 +379,7 @@ def build_config_panel(density_panel, selected_cell_id, seed_draft, seed_mode="r
                         style=config_panel_unified_body_style(),
                     ),
                 ],
-                className="seed-panel-scroll",
+                className="seed-panel-scroll custom-scrollbar",
                 style=config_panel_middle_style(),
             ),
             html.Div(
@@ -415,8 +405,8 @@ def build_config_panel(density_panel, selected_cell_id, seed_draft, seed_mode="r
                             "zIndex": "2",
                             "display": "flex",
                             "fontSize": sidebar_clamp(10, 1.55, 16),
-                            "padding": f"{sidebar_clamp(6, 0.9, 11)} {sidebar_clamp(8, 1.1, 14)}",
-                            "minHeight": sidebar_clamp(32, 4.8, 46),
+                            "padding": f"{sidebar_clamp(5, 0.75, 9)} {sidebar_clamp(6, 0.9, 11)}",
+                            "minHeight": sidebar_clamp(30, 4.2, 42),
                             "letterSpacing": "0",
                         },
                     ),
@@ -424,12 +414,14 @@ def build_config_panel(density_panel, selected_cell_id, seed_draft, seed_mode="r
                 style={
                     "flex": "0 0 auto",
                     "display": "grid",
-                    "gap": sidebar_clamp(2, 0.3, 5),
+                    "gap": sidebar_clamp(2, 0.25, 4),
                     "zIndex": "3",
-                    "paddingTop": sidebar_clamp(4, 0.6, 8),
-                    "backgroundColor": "rgba(0, 31, 63, 0.46)",
-                    "backdropFilter": "blur(12px) saturate(120%)",
-                    "WebkitBackdropFilter": "blur(12px) saturate(120%)",
+                    "padding": "0",
+                    "backgroundColor": "transparent",
+                    "border": "none",
+                    "boxShadow": "none",
+                    "backdropFilter": "none",
+                    "WebkitBackdropFilter": "none",
                 },
             ),
         ],
