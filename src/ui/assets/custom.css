@@ -103,6 +103,41 @@ body,
     pointer-events: auto;
 }
 
+.app-loading-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0;
+    color: #ffffff;
+    font: 500 16px / 1 "Segoe UI", sans-serif;
+    text-shadow: 0 1px 4px rgba(15, 23, 42, 0.78);
+}
+
+.app-loading-custom-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.32);
+    border-top-color: #ffffff;
+    border-radius: 999px;
+    animation: app-loading-spin 0.8s linear infinite;
+    flex: 0 0 auto;
+}
+
+.app-loading-label {
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+@keyframes app-loading-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .legend-info-button {
     width: clamp(32px, 4vmin, 42px);
     height: clamp(32px, 4vmin, 42px);

@@ -156,6 +156,7 @@ class CallbacksManager:
             Output("simulation-upload", "contents", allow_duplicate=True),
             Output("simulation-upload", "filename", allow_duplicate=True),
             Output("simulation-upload", "last_modified", allow_duplicate=True),
+            Output("app-loading-signal", "children", allow_duplicate=True),
             Input("step-btn", "n_clicks"),
             Input("reset-btn", "n_clicks"),
             Input("seed-apply-btn", "n_clicks"),
@@ -194,17 +195,17 @@ class CallbacksManager:
 
             if trigger == "reset-btn":
                 service.reset_simulation()
-                return sim_version + 1, True, "assisted", False, {}, density_config, False, False, False, "", "", "", None, None, None
+                return sim_version + 1, True, "assisted", False, {}, density_config, False, False, False, "", "", "", None, None, None, f"reset:{sim_version + 1}"
 
             if trigger == "step-btn":
                 if seed_active:
-                    return sim_version, True, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "Aplica una semilla antes de avanzar.", "", no_update, no_update, no_update, no_update
+                    return sim_version, True, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "Aplica una semilla antes de avanzar.", "", no_update, no_update, no_update, no_update, no_update
                 if not service.can_advance_simulation():
                     max_month = service.simulation_parameters.max_simulation_month
-                    return sim_version, False, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, f"La simulacion no puede avanzar mas alla del mes {max_month}.", "", no_update, no_update, no_update, no_update
+                    return sim_version, False, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, f"La simulacion no puede avanzar mas alla del mes {max_month}.", "", no_update, no_update, no_update, no_update, no_update
                 service.apply_density_config(typed_density_config)
                 service.step()
-                return sim_version + 1, False, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update
+                return sim_version + 1, False, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update, f"step:{sim_version + 1}"
 
             if trigger == "seed-apply-btn":
                 if loaded_simulation:
@@ -224,6 +225,7 @@ class CallbacksManager:
                         no_update,
                         no_update,
                         no_update,
+                        no_update,
                     )
 
                 validated_density, density_error = service.validate_density_controls(
@@ -232,7 +234,7 @@ class CallbacksManager:
                     adult_mortality_multiplier,
                 )
                 if density_error:
-                    return sim_version, seed_active, no_update, False, seed_draft, density_config, False, no_update, no_update, "", density_error, no_update, no_update, no_update, no_update
+                    return sim_version, seed_active, no_update, False, seed_draft, density_config, False, no_update, no_update, "", density_error, no_update, no_update, no_update, no_update, no_update
 
                 density_config = validated_density.as_dict()
                 service.apply_density_config(validated_density)
@@ -240,24 +242,24 @@ class CallbacksManager:
                 if seed_mode == "random":
                     generated_seed = service.build_probabilistic_seed()
                     service.apply_seed(generated_seed)
-                    return sim_version + 1, False, no_update, True, generated_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
+                    return sim_version + 1, False, no_update, True, generated_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update, f"seed:{sim_version + 1}"
 
                 if seed_mode == "manual":
                     error = service.validate_seed(seed_draft)
                     if error:
-                        return sim_version, True, no_update, False, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update
+                        return sim_version, True, no_update, False, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update, no_update
                     service.apply_seed(seed_draft)
-                    return sim_version + 1, False, no_update, True, seed_draft, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
+                    return sim_version + 1, False, no_update, True, seed_draft, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update, f"seed:{sim_version + 1}"
 
                 if seed_mode == "assisted":
                     error = service.validate_seed(seed_draft) if seed_draft else None
                     if error:
-                        return sim_version, True, no_update, False, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update
+                        return sim_version, True, no_update, False, seed_draft, density_config, False, no_update, no_update, error, "", "", no_update, no_update, no_update, no_update
                     assisted_seed = service.build_assisted_seed(seed_draft)
                     service.apply_seed(assisted_seed)
-                    return sim_version + 1, False, no_update, True, assisted_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update
+                    return sim_version + 1, False, no_update, True, assisted_seed, density_config, False, no_update, no_update, "", "", "", no_update, no_update, no_update, f"seed:{sim_version + 1}"
 
-            return sim_version, seed_active, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update
+            return sim_version, seed_active, no_update, no_update, seed_draft, density_config, loaded_simulation, no_update, no_update, "", "", no_update, no_update, no_update, no_update, no_update
 
         @app.callback(
             Output("sim-version-store", "data", allow_duplicate=True),
@@ -536,12 +538,13 @@ class CallbacksManager:
 
         @app.callback(
             Output("currents-visible-store", "data"),
+            Output("app-loading-signal", "children", allow_duplicate=True),
             Input("toggle-currents-btn", "n_clicks"),
             State("currents-visible-store", "data"),
             prevent_initial_call=True,
         )
         def toggle_currents_visibility(_, is_visible):
-            return not is_visible
+            return (not is_visible), f"currents-toggle:{int(not bool(is_visible))}"
 
         @app.callback(Output("toggle-currents-btn", "children"), Input("currents-visible-store", "data"))
         def update_currents_button(is_visible):
@@ -549,12 +552,13 @@ class CallbacksManager:
 
         @app.callback(
             Output("transport-visible-store", "data"),
+            Output("app-loading-signal", "children", allow_duplicate=True),
             Input("toggle-transport-btn", "n_clicks"),
             State("transport-visible-store", "data"),
             prevent_initial_call=True,
         )
         def toggle_transport_visibility(_, is_visible):
-            return not is_visible
+            return (not is_visible), f"transport-toggle:{int(not bool(is_visible))}"
 
         @app.callback(Output("toggle-transport-btn", "children"), Input("transport-visible-store", "data"))
         def update_transport_button(is_visible):
@@ -715,21 +719,54 @@ class CallbacksManager:
                 return cell_id, adults, juveniles, larvae, cell_id, cleared_grid_clicks, None, None
             return no_update, no_update, no_update, no_update, no_update, cleared_grid_clicks, None, None
 
-        @app.callback(
+        app.clientside_callback(
+            """
+            function(_keyboardEvents, currentCell, keyboardEvent, gridNavigation) {
+                const key = (keyboardEvent || {}).key;
+                const navigation = gridNavigation || {};
+                const rows = navigation.rows || 0;
+                const cols = navigation.cols || 0;
+                if (!currentCell || !key || rows <= 0 || cols <= 0) {
+                    return currentCell;
+                }
+
+                if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
+                    return currentCell;
+                }
+
+                const match = /^([A-Z]+)(\\d+)$/.exec(currentCell);
+                if (!match) {
+                    return currentCell;
+                }
+
+                const rowLetters = match[1];
+                let row = rowLetters.charCodeAt(0) - 65;
+                let col = parseInt(match[2], 10) - 1;
+
+                if (Number.isNaN(row) || Number.isNaN(col)) {
+                    return currentCell;
+                }
+
+                if (key === "ArrowUp") {
+                    row = Math.max(0, row - 1);
+                } else if (key === "ArrowDown") {
+                    row = Math.min(rows - 1, row + 1);
+                } else if (key === "ArrowLeft") {
+                    col = Math.max(0, col - 1);
+                } else if (key === "ArrowRight") {
+                    col = Math.min(cols - 1, col + 1);
+                }
+
+                return `${String.fromCharCode(65 + row)}${col + 1}`;
+            }
+            """,
             Output("selected-cell-store", "data", allow_duplicate=True),
             Input("keyboard-listener", "n_events"),
             State("selected-cell-store", "data"),
             State("keyboard-listener", "event"),
+            State("grid-navigation-store", "data"),
             prevent_initial_call=True,
         )
-        def select_cell_by_keyboard(_keyboard_events, current_cell, keyboard_event):
-            trigger = ctx.triggered_id
-            if not trigger:
-                return current_cell
-            if trigger == "keyboard-listener":
-                key = (keyboard_event or {}).get("key")
-                return self._move_cell_selection(current_cell, key)
-            return current_cell
 
         @app.callback(
             Output("map", "viewport"),

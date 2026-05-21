@@ -143,7 +143,7 @@ def sidebar_tab_button_style(is_active):
         "color": "#ffffff",
         "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.10)" if is_active else "none",
         "cursor": "pointer",
-        "fontSize": sidebar_clamp(6, 1.05, 12),
+        "fontSize": sidebar_clamp(6, 1.35, 14),
         "fontWeight": "800" if is_active else "650",
         "lineHeight": "1.12",
         "letterSpacing": "0",
