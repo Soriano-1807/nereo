@@ -52,11 +52,15 @@ class DashboardConfig:
 
 
 class CallbacksManager:
-    def __init__(self, app, service, config: DashboardConfig | None = None):
+    def __init__(self, app, service_getter, config: DashboardConfig | None = None):
         self.app = app
-        self.service = service
+        self._service_getter = service_getter
         self.config = config or DashboardConfig()
         self.csv_serializer = SimulationCsvSerializer()
+
+    @property
+    def service(self):
+        return self._service_getter()
 
     def get_real_month_label(self):
         month_offset = self.service.current_month
@@ -135,7 +139,7 @@ class CallbacksManager:
 
     def register(self):
         app = self.app
-        service = self.service
+        get_service = self._service_getter
 
         @app.callback(
             Output("sim-version-store", "data"),
@@ -181,6 +185,7 @@ class CallbacksManager:
             juvenile_mortality_multiplier,
             adult_mortality_multiplier,
         ):
+            service = get_service()
             trigger = ctx.triggered_id
             sim_version = sim_version or 0
             seed_draft = seed_draft or {}
@@ -277,6 +282,7 @@ class CallbacksManager:
             prevent_initial_call=True,
         )
         def load_simulation_from_csv(contents, filename, sim_version):
+            service = get_service()
             if not contents:
                 return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
@@ -421,6 +427,7 @@ class CallbacksManager:
             State("seed-cell-larvae", "value"),
         )
         def hydrate_seed_cell_inputs(selected_cell_id, seed_draft, source_cell_id, adults_value, juveniles_value, larvae_value):
+            service = get_service()
             source_values = get_seed_cell_values(source_cell_id, seed_draft)
             if not seed_values_match(adults_value, juveniles_value, larvae_value, *source_values, service.parse_seed_input_for_match):
                 return no_update, no_update, no_update, source_cell_id
@@ -448,6 +455,7 @@ class CallbacksManager:
             prevent_initial_call=True,
         )
         def update_seed_draft(save_clicks, clear_cell_clicks, clear_clicks, selected_cell_id, seed_draft, adults, juveniles, larvae, loaded_simulation):
+            service = get_service()
             if loaded_simulation:
                 return seed_draft or {}, "La simulacion cargada desde CSV no admite cambios en la semilla.", no_update, no_update, no_update, no_update
 
@@ -484,6 +492,7 @@ class CallbacksManager:
             Input("seed-draft-store", "data"),
         )
         def render_seed_draft_layer(seed_active, seed_draft):
+            service = get_service()
             if not seed_active:
                 return build_seed_draft_layer({}, service.features_by_id, revision="inactive")
             return build_seed_draft_layer(
@@ -497,6 +506,7 @@ class CallbacksManager:
             Input("sim-version-store", "data"),
         )
         def render_grid_layers(_sim_version):
+            service = get_service()
             if not service.has_population():
                 return build_grid_layers(
                     service.grid_features,
@@ -515,6 +525,7 @@ class CallbacksManager:
             Input("sim-version-store", "data"),
         )
         def render_transport_path_layers(is_visible, _sim_version):
+            service = get_service()
             if not is_visible:
                 return []
             return build_transport_path_layers(
@@ -556,6 +567,7 @@ class CallbacksManager:
             Input("sim-version-store", "data"),
         )
         def render_current_layers(is_visible, sim_version):
+            service = get_service()
             current_speed_min, current_speed_max = service.current_speed_range
             return build_current_layer_group(
                 is_visible,
@@ -574,6 +586,7 @@ class CallbacksManager:
             Input("sim-version-store", "data"),
         )
         def update_summary_body(_sim_version):
+            service = get_service()
             summary_rows = build_sidebar_summary(build_summary_panel(service.get_summary())).children[1].children
             return (
                 summary_rows,
@@ -589,6 +602,7 @@ class CallbacksManager:
             Input("sim-version-store", "data"),
         )
         def update_detail_body(selected_cell_id, _sim_version):
+            service = get_service()
             detail_content = build_detail_panel(
                 selected_cell_id,
                 service.cells_by_id,
@@ -643,6 +657,7 @@ class CallbacksManager:
             Input("currents-visible-store", "data"),
         )
         def update_time_indicators(_sim_version, _currents_visible):
+            service = get_service()
             real_month_label = self.get_real_month_label()
             progress_percent = self.get_progress_percent()
             progress_target_month = self.get_progress_target_month()
@@ -663,6 +678,7 @@ class CallbacksManager:
             prevent_initial_call=True,
         )
         def save_simulation(_save_clicks):
+            service = get_service()
             current_month = service.current_month
             filename = f"simulacion_mes_{current_month}.csv"
             csv_content = self.csv_serializer.export(service)
@@ -670,6 +686,7 @@ class CallbacksManager:
 
         @app.callback(Output("selection-layer", "children"), Input("selected-cell-store", "data"))
         def render_selection_layer(selected_cell_id):
+            service = get_service()
             return build_selection_layer(selected_cell_id, service.features_by_id)
 
         @app.callback(
@@ -688,6 +705,7 @@ class CallbacksManager:
             prevent_initial_call=True,
         )
         def select_cell_by_click(_grid_clicks, _seed_draft_click, _boundary_click, seed_draft):
+            service = get_service()
             cleared_grid_clicks = [None] * len(_grid_clicks or [])
             if not ctx.triggered:
                 return no_update, no_update, no_update, no_update, no_update, cleared_grid_clicks, None, None
@@ -722,6 +740,7 @@ class CallbacksManager:
             prevent_initial_call=True,
         )
         def update_map_view(grid_clicks, coast_clicks):
+            service = get_service()
             trigger = ctx.triggered_id
             if trigger == "focus-coast-btn":
                 return {

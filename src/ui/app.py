@@ -1,7 +1,12 @@
+import os
+import uuid
+
 import dash_leaflet as dl
 from dash import Dash, dcc, html
 from dash_extensions import EventListener
+from flask import has_request_context, session
 
+from src.application.session_registry import SessionRegistry
 from src.application.services import SimulationService
 from src.ui.callbacks_manager import CallbacksManager, DashboardConfig
 from src.ui.components.map_view import (
@@ -43,12 +48,26 @@ class NereoApp:
         self.lon_lines = lon_lines or LON_LINES
         self.lat_lines = lat_lines or LAT_LINES
         self.config = DashboardConfig()
-        self.service = SimulationService(self.lon_lines, self.lat_lines)
         self.app = Dash(__name__, suppress_callback_exceptions=True, title="Nereo", update_title=None)
-        self.callbacks_manager = CallbacksManager(self.app, self.service, self.config)
+        self.app.server.secret_key = os.getenv("SECRET_KEY", "nereo-session-secret")
+        self.service_registry = SessionRegistry(lambda: SimulationService(self.lon_lines, self.lat_lines))
+        self.callbacks_manager = CallbacksManager(self.app, self.get_service, self.config)
         self.app.index_string = self._build_index_string()
         self.app.layout = self.build_layout
         self.callbacks_manager.register()
+
+    def _get_session_id(self):
+        if not has_request_context():
+            return "default"
+
+        session_id = session.get("nereo_session_id")
+        if not session_id:
+            session_id = uuid.uuid4().hex
+            session["nereo_session_id"] = session_id
+        return session_id
+
+    def get_service(self):
+        return self.service_registry.get(self._get_session_id())
 
     def _build_index_string(self):
         favicon_url = self.app.get_asset_url(FAVICON_ASSET_NAME)
@@ -80,20 +99,21 @@ class NereoApp:
         return self.callbacks_manager.get_progress_percent()
 
     def build_layout(self):
-        self.service.reset_simulation()
-        default_density_config = self.service.default_density_config().as_dict()
-        current_speed_min, current_speed_max = self.service.current_speed_range
-        summary_rows = build_summary_panel(self.service.get_summary())
+        service = self.get_service()
+        service.reset_simulation()
+        default_density_config = service.default_density_config().as_dict()
+        current_speed_min, current_speed_max = service.current_speed_range
+        summary_rows = build_summary_panel(service.get_summary())
         detail_content = build_detail_panel(
             self.config.default_selected_cell,
-            self.service.cells_by_id,
+            service.cells_by_id,
             self.callbacks_manager.build_current_detail,
             self.callbacks_manager.cell_state_label,
         )
         density_panel = build_density_control_panel(
             default_density_config,
-            self.service.juvenile_mortality_rate,
-            self.service.adult_mortality_rate,
+            service.juvenile_mortality_rate,
+            service.adult_mortality_rate,
         )
         real_month_label = self.get_real_month_label()
         progress_percent = self.get_progress_percent()
@@ -123,8 +143,8 @@ class NereoApp:
                             dl.Map(
                                 id="map",
                                 center=[
-                                    (self.service.grid.south + self.service.grid.north) / 2,
-                                    self.service.grid.west + ((self.service.grid.east - self.service.grid.west) * 0.33),
+                                    (service.grid.south + service.grid.north) / 2,
+                                    service.grid.west + ((service.grid.east - service.grid.west) * 0.33),
                                 ],
                                 zoom=7.8,
                                 minZoom=6.0,
@@ -147,10 +167,10 @@ class NereoApp:
                                         attribution="Tiles © Esri",
                                     ),
                                     dl.ZoomControl(position="bottomright"),
-                                    dl.LayerGroup(id="grid-layer", children=build_grid_layers(self.service.grid_features, self.service.cells_by_id)),
+                                    dl.LayerGroup(id="grid-layer", children=build_grid_layers(service.grid_features, service.cells_by_id)),
                                     dl.LayerGroup(
                                         id="colonizable-boundary-layer",
-                                        children=build_colonizable_boundary_layers(self.service.grid_features, self.service.colonizable_feature_ids),
+                                        children=build_colonizable_boundary_layers(service.grid_features, service.colonizable_feature_ids),
                                     ),
                                     dl.LayerGroup(id="seed-draft-layer", children=[]),
                                     dl.Pane(
@@ -160,9 +180,9 @@ class NereoApp:
                                             children=build_current_layer_group(
                                                 False,
                                                 0,
-                                                self.service.get_environment_month(),
-                                                self.service.grid_features,
-                                                self.service.get_current_for_cell,
+                                                service.get_environment_month(),
+                                                service.grid_features,
+                                                service.get_current_for_cell,
                                                 current_speed_min,
                                                 current_speed_max,
                                             ),
@@ -176,7 +196,7 @@ class NereoApp:
                                     ),
                                     dl.LayerGroup(
                                         id="selection-layer",
-                                        children=build_selection_layer(self.config.default_selected_cell, self.service.features_by_id),
+                                        children=build_selection_layer(self.config.default_selected_cell, service.features_by_id),
                                     ),
                                 ],
                                 style={"width": "100%", "height": "100%"},
@@ -210,8 +230,8 @@ class NereoApp:
                                 children=build_floating_legends_help(
                                     current_speed_min,
                                     current_speed_max,
-                                    self.service.temperature_range,
-                                    self.service.salinity_range,
+                                    service.temperature_range,
+                                    service.salinity_range,
                                 ),
                             ),
                             html.Div(
@@ -223,7 +243,7 @@ class NereoApp:
                                 id="simulation-progress",
                                 children=build_simulation_progress_children(
                                     real_month_label,
-                                    self.service.current_month,
+                                    service.current_month,
                                     progress_target_month,
                                     progress_percent,
                                 ),
