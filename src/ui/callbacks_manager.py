@@ -25,7 +25,6 @@ from src.ui.components.sidebar import (
     SIDEBAR_PANEL_SUMMARY,
     build_detail_panel,
     build_real_month_badge_children,
-    build_sidebar_summary,
     build_simulation_progress_children,
     build_summary_panel,
     progress_shell_style,
@@ -587,7 +586,7 @@ class CallbacksManager:
         )
         def update_summary_body(_sim_version):
             service = get_service()
-            summary_rows = build_sidebar_summary(build_summary_panel(service.get_summary())).children[1].children
+            summary_rows = build_summary_panel(service.get_summary())
             return (
                 summary_rows,
                 sidebar_summary_body_style(summary_rows),
@@ -609,11 +608,10 @@ class CallbacksManager:
                 self.build_current_detail,
                 self.cell_state_label,
             )
-            summary_rows = build_sidebar_summary(build_summary_panel(service.get_summary())).children[1].children
             return (
                 detail_content,
                 sidebar_detail_panel_style(detail_content),
-                sidebar_fit_area_style(detail_content, summary_rows),
+                sidebar_fit_area_style(detail_content, None),
             )
 
         @app.callback(

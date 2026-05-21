@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import dash_leaflet as dl
 from dash import html
 
@@ -94,28 +96,39 @@ def positions_to_geojson_polygon(positions):
     return [[[lon, lat] for lat, lon in positions]]
 
 
+@lru_cache(maxsize=None)
+def build_static_cell_geojson_feature(cell_id, row, col, depth_m, colonizable, positions):
+    return {
+        "type": "Feature",
+        "properties": {
+            "id": cell_id,
+            "cell_id": cell_id,
+            "row": row,
+            "col": col,
+            "depth_m": depth_m,
+            "colonizable": colonizable,
+            "tooltip": f"Celda {cell_id}",
+        },
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": positions_to_geojson_polygon(positions),
+        },
+    }
+
+
 def feature_collection(features):
     return {"type": "FeatureCollection", "features": features}
 
 
 def build_cell_geojson_feature(feature, cell):
-    return {
-        "type": "Feature",
-        "properties": {
-            "id": cell.cell_id,
-            "cell_id": cell.cell_id,
-            "row": cell.row,
-            "col": cell.col,
-            "state": cell.visible_state(),
-            "depth_m": cell.depth_m,
-            "colonizable": cell.can_be_colonized(),
-            "tooltip": f"Celda {cell.cell_id}",
-        },
-        "geometry": {
-            "type": "Polygon",
-            "coordinates": positions_to_geojson_polygon(feature["positions"]),
-        },
-    }
+    return build_static_cell_geojson_feature(
+        cell.cell_id,
+        cell.row,
+        cell.col,
+        cell.depth_m,
+        cell.can_be_colonized(),
+        tuple(tuple(position) for position in feature["positions"]),
+    )
 
 
 def build_current_layers(
