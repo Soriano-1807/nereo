@@ -109,6 +109,37 @@ class NereoApp:
         <title>{{%title%}}</title>
         <link rel="icon" type="image/png" sizes="512x512" href="{favicon_url}">
         <link rel="apple-touch-icon" href="{favicon_url}">
+        <style>
+            html, body {{
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: linear-gradient(180deg, #021223 0%, #001f3f 100%);
+                color: #f8fafc;
+                font-family: "Segoe UI", sans-serif;
+            }}
+
+            #react-entry-point,
+            #_dash-app-content {{
+                width: 100%;
+                height: 100%;
+                background: transparent;
+            }}
+
+            #_dash-loading {{
+                position: fixed;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(180deg, #021223 0%, #001f3f 100%);
+                color: #f8fafc;
+                font: 600 18px/1 "Segoe UI", sans-serif;
+                letter-spacing: 0.01em;
+            }}
+        </style>
         {{%css%}}
     </head>
     <body>
