@@ -39,6 +39,11 @@ COLONIZABLE_BOUNDARY_STYLE = {
     "opacity": 0.95,
     "fillOpacity": 0,
 }
+SELECTION_PATH_OPTIONS = {
+    "color": "#f8fafc",
+    "weight": 5,
+    "fillOpacity": 0,
+}
 
 
 def overlay_clamp(min_px, preferred_vmin, max_px):
@@ -266,7 +271,7 @@ def build_colonizable_boundary_layers(grid_features, colonizable_feature_ids):
     ]
 
 
-def build_selection_layer(selected_cell_id, features_by_id):
+def selection_positions_for_cell(selected_cell_id, features_by_id):
     if not selected_cell_id:
         return []
 
@@ -274,18 +279,17 @@ def build_selection_layer(selected_cell_id, features_by_id):
     if feature is None:
         return []
 
-    return [
-        dl.Polygon(
-            positions=feature["positions"],
-            interactive=False,
-            bubblingMouseEvents=False,
-            pathOptions={
-                "color": "#f8fafc",
-                "weight": 5,
-                "fillOpacity": 0,
-            },
-        )
-    ]
+    return feature["positions"]
+
+
+def build_selection_polygon(selected_cell_id, features_by_id):
+    return dl.Polygon(
+        id="selection-polygon",
+        positions=selection_positions_for_cell(selected_cell_id, features_by_id),
+        interactive=False,
+        bubblingMouseEvents=False,
+        pathOptions=SELECTION_PATH_OPTIONS,
+    )
 
 
 def build_seed_draft_layer(seed_draft, features_by_id, revision=None):

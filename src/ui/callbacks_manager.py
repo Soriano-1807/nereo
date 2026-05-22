@@ -9,7 +9,6 @@ from src.ui.components.map_view import (
     build_current_layer_group,
     build_grid_layers,
     build_seed_draft_layer,
-    build_selection_layer,
     build_transport_path_layers,
     current_marker_batch_class,
 )
@@ -647,19 +646,25 @@ class CallbacksManager:
             Output("seed-random-box", "style"),
             Output("seed-manual-box", "style"),
             Output("seed-assisted-box", "style"),
-            Output("seed-selected-cell", "children"),
-            Output("seed-draft-summary", "children"),
             Input("seed-active-store", "data"),
             Input("seed-mode", "data"),
-            Input("selected-cell-store", "data"),
-            Input("seed-draft-store", "data"),
         )
-        def render_config_panel(seed_active, seed_mode, selected_cell_id, seed_draft):
+        def render_config_panel(seed_active, seed_mode):
             return (
                 {"display": "block" if seed_active else "none"},
                 seed_mode_box_style(seed_mode == "random"),
                 seed_mode_box_style(seed_mode in {"manual", "assisted"}),
                 seed_mode_box_style(seed_mode == "assisted"),
+            )
+
+        @app.callback(
+            Output("seed-selected-cell", "children"),
+            Output("seed-draft-summary", "children"),
+            Input("selected-cell-store", "data"),
+            Input("seed-draft-store", "data"),
+        )
+        def render_seed_selection_status(selected_cell_id, seed_draft):
+            return (
                 build_seed_cell_status(selected_cell_id, seed_draft),
                 build_seed_summary(seed_draft),
             )
@@ -915,8 +920,12 @@ class CallbacksManager:
             Output("sidebar-fit-area", "style"),
             Input("selected-cell-store", "data"),
             Input("sim-version-store", "data"),
+            Input("sidebar-visible-store", "data"),
+            Input("seed-active-store", "data"),
         )
-        def update_detail_body(selected_cell_id, _sim_version):
+        def update_detail_body(selected_cell_id, _sim_version, sidebar_visible, seed_active):
+            if seed_active or not sidebar_visible:
+                return no_update, no_update, no_update
             service = get_service()
             detail_content = build_detail_panel(
                 selected_cell_id,
@@ -998,10 +1007,19 @@ class CallbacksManager:
             csv_content = self.csv_serializer.export(service)
             return dcc.send_string(csv_content, filename)
 
-        @app.callback(Output("selection-layer", "children"), Input("selected-cell-store", "data"))
-        def render_selection_layer(selected_cell_id):
-            service = get_service()
-            return build_selection_layer(selected_cell_id, service.features_by_id)
+        app.clientside_callback(
+            """
+            function(selectedCellId, positionsByCell) {
+                if (!selectedCellId || !positionsByCell) {
+                    return [];
+                }
+                return positionsByCell[selectedCellId] || [];
+            }
+            """,
+            Output("selection-polygon", "positions"),
+            Input("selected-cell-store", "data"),
+            State("grid-selection-positions-store", "data"),
+        )
 
         @app.callback(
             Output("selected-cell-store", "data", allow_duplicate=True),

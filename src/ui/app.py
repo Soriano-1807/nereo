@@ -15,7 +15,7 @@ from src.ui.components.map_view import (
     build_floating_legends_help,
     build_grid_layers,
     build_map_view_controls,
-    build_selection_layer,
+    build_selection_polygon,
 )
 from src.ui.components.config_panel import build_config_panel
 from src.ui.components.sidebar import (
@@ -47,6 +47,13 @@ def build_grid_navigation_data(grid):
     return {
         "rows": grid.rows,
         "cols": grid.cols,
+    }
+
+
+def build_grid_selection_positions(features_by_id):
+    return {
+        cell_id: feature["positions"]
+        for cell_id, feature in features_by_id.items()
     }
 
 
@@ -160,6 +167,7 @@ class NereoApp:
                     dcc.Store(id="loaded-simulation-store", data=False),
                     dcc.Store(id="seed-input-source-store", data=self.config.default_selected_cell),
                     dcc.Store(id="grid-navigation-store", data=build_grid_navigation_data(service.grid)),
+                    dcc.Store(id="grid-selection-positions-store", data=build_grid_selection_positions(service.features_by_id)),
                     dcc.Store(id="loading-pending-action-store", data=None),
                     dcc.Store(id="current-marker-target-store", data={"target": 0, "batchClass": None}),
                     dcc.Download(id="simulation-download"),
@@ -237,7 +245,7 @@ class NereoApp:
                                     ),
                                     dl.LayerGroup(
                                         id="selection-layer",
-                                        children=build_selection_layer(self.config.default_selected_cell, service.features_by_id),
+                                        children=[build_selection_polygon(self.config.default_selected_cell, service.features_by_id)],
                                     ),
                                 ],
                                 style={"width": "100%", "height": "100%"},
