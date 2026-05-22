@@ -1,12 +1,12 @@
 import os
 import uuid
+from threading import Lock
 
 import dash_leaflet as dl
 from dash import Dash, dcc, html
 from dash_extensions import EventListener
 from flask import has_request_context, session
 
-from src.application.session_registry import SessionRegistry
 from src.application.services import SimulationService
 from src.ui.callbacks_manager import CallbacksManager, DashboardConfig
 from src.ui.components.map_view import (
@@ -55,17 +55,22 @@ class NereoApp:
         self.lon_lines = lon_lines or LON_LINES
         self.lat_lines = lat_lines or LAT_LINES
         self.config = DashboardConfig()
+        self._services_by_session: dict[str, SimulationService] = {}
+        self._default_service: SimulationService | None = None
+        self._services_lock = Lock()
         self.app = Dash(__name__, suppress_callback_exceptions=True, title="Nereo", update_title=None)
         self.app.server.secret_key = os.getenv("SECRET_KEY", "nereo-session-secret")
-        self.service_registry = SessionRegistry(lambda: SimulationService(self.lon_lines, self.lat_lines))
         self.callbacks_manager = CallbacksManager(self.app, self.get_service, self.config)
         self.app.index_string = self._build_index_string()
         self.app.layout = self.build_layout
         self.callbacks_manager.register()
 
-    def _get_session_id(self):
+    def _build_service(self) -> SimulationService:
+        return SimulationService(self.lon_lines, self.lat_lines)
+
+    def _get_session_id(self) -> str | None:
         if not has_request_context():
-            return "default"
+            return None
 
         session_id = session.get("nereo_session_id")
         if not session_id:
@@ -73,8 +78,19 @@ class NereoApp:
             session["nereo_session_id"] = session_id
         return session_id
 
-    def get_service(self):
-        return self.service_registry.get(self._get_session_id())
+    def get_service(self) -> SimulationService:
+        session_id = self._get_session_id()
+        with self._services_lock:
+            if session_id is None:
+                if self._default_service is None:
+                    self._default_service = self._build_service()
+                return self._default_service
+
+            service = self._services_by_session.get(session_id)
+            if service is None:
+                service = self._build_service()
+                self._services_by_session[session_id] = service
+            return service
 
     def _build_index_string(self):
         favicon_url = self.app.get_asset_url(FAVICON_ASSET_NAME)
