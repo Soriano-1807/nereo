@@ -43,6 +43,7 @@ from src.utils.parsing import parse_non_negative_int
 @dataclass(frozen=True)
 class DashboardConfig:
     default_selected_cell: str = "A1"
+    default_seed_mode: str = "assisted"
     real_month_names: tuple[str, ...] = (
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
@@ -486,7 +487,7 @@ class CallbacksManager:
 
             if trigger == "reset-btn":
                 service.reset_simulation()
-                return sim_version + 1, True, "assisted", False, {}, density_config, False, False, False, "", "", "", None, None, None, f"reset:{sim_version + 1}"
+                return sim_version + 1, True, self.config.default_seed_mode, False, {}, density_config, False, False, False, "", "", "", None, None, None, f"reset:{sim_version + 1}"
 
             if trigger == "step-btn":
                 if seed_active:
@@ -671,9 +672,6 @@ class CallbacksManager:
 
         @app.callback(
             Output("seed-mode", "data"),
-            Output("seed-mode-random-btn", "style"),
-            Output("seed-mode-manual-btn", "style"),
-            Output("seed-mode-assisted-btn", "style"),
             Input("seed-mode-random-btn", "n_clicks"),
             Input("seed-mode-manual-btn", "n_clicks"),
             Input("seed-mode-assisted-btn", "n_clicks"),
@@ -682,14 +680,9 @@ class CallbacksManager:
             prevent_initial_call=True,
         )
         def update_seed_mode(random_clicks, manual_clicks, assisted_clicks, current_mode, loaded_simulation):
-            next_mode = current_mode or "assisted"
+            next_mode = current_mode or self.config.default_seed_mode
             if loaded_simulation:
-                return (
-                    next_mode,
-                    seed_mode_button_style(next_mode == "random"),
-                    seed_mode_button_style(next_mode == "manual"),
-                    seed_mode_button_style(next_mode == "assisted"),
-                )
+                return next_mode
 
             trigger = ctx.triggered_id
             if trigger == "seed-mode-random-btn":
@@ -698,11 +691,20 @@ class CallbacksManager:
                 next_mode = "manual"
             elif trigger == "seed-mode-assisted-btn":
                 next_mode = "assisted"
+            return next_mode
+
+        @app.callback(
+            Output("seed-mode-random-btn", "style"),
+            Output("seed-mode-manual-btn", "style"),
+            Output("seed-mode-assisted-btn", "style"),
+            Input("seed-mode", "data"),
+        )
+        def render_seed_mode_button_styles(seed_mode):
+            active_mode = seed_mode or self.config.default_seed_mode
             return (
-                next_mode,
-                seed_mode_button_style(next_mode == "random"),
-                seed_mode_button_style(next_mode == "manual"),
-                seed_mode_button_style(next_mode == "assisted"),
+                seed_mode_button_style(active_mode == "random"),
+                seed_mode_button_style(active_mode == "manual"),
+                seed_mode_button_style(active_mode == "assisted"),
             )
 
         @app.callback(
