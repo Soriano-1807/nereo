@@ -101,6 +101,7 @@ class NereoApp:
 
     def _build_index_string(self):
         favicon_url = self.app.get_asset_url(FAVICON_ASSET_NAME)
+        loading_background_url = self.app.get_asset_url("Cargando....png")
         return f"""
 <!DOCTYPE html>
 <html>
@@ -116,9 +117,7 @@ class NereoApp:
                 width: 100%;
                 height: 100%;
                 overflow: hidden;
-                background: linear-gradient(180deg, #021223 0%, #001f3f 100%);
-                color: #f8fafc;
-                font-family: "Segoe UI", sans-serif;
+                background: #001f3f url("{loading_background_url}") center center / cover no-repeat;
             }}
 
             #react-entry-point,
@@ -131,13 +130,9 @@ class NereoApp:
             #_dash-loading {{
                 position: fixed;
                 inset: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(180deg, #021223 0%, #001f3f 100%);
-                color: #f8fafc;
-                font: 600 18px/1 "Segoe UI", sans-serif;
-                letter-spacing: 0.01em;
+                background: #001f3f url("{loading_background_url}") center center / cover no-repeat;
+                color: transparent;
+                font-size: 0;
             }}
         </style>
         {{%css%}}
