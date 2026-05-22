@@ -259,7 +259,7 @@ def build_colonizable_boundary_layers(grid_features, colonizable_feature_ids):
             id="colonizable-boundary-geojson",
             data=feature_collection(features),
             style=COLONIZABLE_BOUNDARY_STYLE,
-            interactive=True,
+            interactive=False,
             bubblingMouseEvents=False,
             zoomToBoundsOnClick=False,
         )
@@ -319,8 +319,8 @@ def build_seed_draft_layer(seed_draft, features_by_id, revision=None):
             id="seed-draft-geojson",
             data=feature_collection(features),
             style={"color": "#22c55e", "weight": 2, "fillColor": "#22c55e", "fillOpacity": 0.35},
-            interactive=True,
-            bubblingMouseEvents=True,
+            interactive=False,
+            bubblingMouseEvents=False,
             hideout={"revision": draft_revision},
             zoomToBoundsOnClick=False,
         )
