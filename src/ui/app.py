@@ -122,7 +122,7 @@ class NereoApp:
                 width: 100%;
                 height: 100%;
                 overflow: hidden;
-                background: #001f3f url("{loading_background_data_url}") center center / cover no-repeat;
+                background: rgb(4, 13, 38) url("{loading_background_data_url}") center center / cover no-repeat;
             }}
 
             #react-entry-point,
@@ -135,7 +135,7 @@ class NereoApp:
             #react-entry-point ._dash-loading {{
                 position: fixed;
                 inset: 0;
-                background: #001f3f url("{loading_background_data_url}") center center / cover no-repeat;
+                background: rgb(4, 13, 38) url("{loading_background_data_url}") center center / cover no-repeat;
                 color: transparent !important;
                 font-size: 0 !important;
                 line-height: 0 !important;
