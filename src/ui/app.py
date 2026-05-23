@@ -1,3 +1,4 @@
+import base64
 import os
 import uuid
 from threading import Lock
@@ -101,7 +102,11 @@ class NereoApp:
 
     def _build_index_string(self):
         favicon_url = self.app.get_asset_url(FAVICON_ASSET_NAME)
-        loading_background_url = self.app.get_asset_url("Cargando....png")
+        loading_asset_path = os.path.join(self.app.config.assets_folder, "Cargando....png")
+        with open(loading_asset_path, "rb") as loading_asset_file:
+            loading_background_data_url = (
+                "data:image/png;base64," + base64.b64encode(loading_asset_file.read()).decode("ascii")
+            )
         return f"""
 <!DOCTYPE html>
 <html>
@@ -117,7 +122,7 @@ class NereoApp:
                 width: 100%;
                 height: 100%;
                 overflow: hidden;
-                background: #001f3f url("{loading_background_url}") center center / cover no-repeat;
+                background: #001f3f url("{loading_background_data_url}") center center / cover no-repeat;
             }}
 
             #react-entry-point,
@@ -130,7 +135,7 @@ class NereoApp:
             #_dash-loading {{
                 position: fixed;
                 inset: 0;
-                background: #001f3f url("{loading_background_url}") center center / cover no-repeat;
+                background: #001f3f url("{loading_background_data_url}") center center / cover no-repeat;
                 color: transparent;
                 font-size: 0;
             }}
