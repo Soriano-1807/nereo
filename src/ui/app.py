@@ -132,12 +132,18 @@ class NereoApp:
                 background: transparent;
             }}
 
-            #_dash-loading {{
+            #react-entry-point ._dash-loading {{
                 position: fixed;
                 inset: 0;
                 background: #001f3f url("{loading_background_data_url}") center center / cover no-repeat;
-                color: transparent;
-                font-size: 0;
+                color: transparent !important;
+                font-size: 0 !important;
+                line-height: 0 !important;
+                text-indent: -9999px;
+                overflow: hidden;
+                white-space: nowrap;
+                width: 100vw;
+                height: 100vh;
             }}
         </style>
         {{%css%}}
