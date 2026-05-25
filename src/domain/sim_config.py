@@ -16,8 +16,8 @@ class SimulationParameters:
     adult_mortality: float = 0.052
     colonizable_max_depth_m: int = 300
     saturation_threshold: int = 1_000
-    juvenile_mortality_multiplier: float = 1.75
-    adult_mortality_multiplier: float = 2.0
+    juvenile_mortality_multiplier: float = 2.0
+    adult_mortality_multiplier: float = 1.75
     larvae_per_female_month: int = 200_000
     juvenile_months: int = 11
     larval_days: int = 30
